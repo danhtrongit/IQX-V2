@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionPlan, PaymentStatus, Role } from '@prisma/client';
 import { createHmac } from 'crypto';
@@ -165,7 +161,9 @@ export class PaymentsService {
       });
     });
 
-    this.logger.log(`User ${payment.userId} upgraded to PREMIUM until ${endDate}`);
+    this.logger.log(
+      `User ${payment.userId} upgraded to PREMIUM until ${endDate}`,
+    );
 
     return {
       message: MESSAGES.PAYMENT.UPGRADE_SUCCESS,

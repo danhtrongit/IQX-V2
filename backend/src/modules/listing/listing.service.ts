@@ -1,49 +1,152 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProxyHttpService } from '../../common/services/proxy-http.service';
-import { KBS_GROUP_MAP, KBS_EXCHANGE_MAP } from '../../common/constants/mappings.constant';
+import {
+  KBS_GROUP_MAP,
+  KBS_EXCHANGE_MAP,
+} from '../../common/constants/mappings.constant';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import {
+  RedisCacheService,
+  CacheType,
+} from '../../common/modules/redis-cache/redis-cache.service';
 
 @Injectable()
 export class ListingService {
   private readonly logger = new Logger(ListingService.name);
 
-  constructor(private http: ProxyHttpService) {}
+  constructor(
+    private http: ProxyHttpService,
+    private cacheService: RedisCacheService,
+  ) {}
 
-  /** Tất cả mã chứng khoán */
   async getAllSymbols() {
+    const cacheKey = 'listing:all-symbols';
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for all symbols`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const data = await this.http.withFallback(
       () => this.getSymbolsFromKbs(),
       () => this.getSymbolsFromVci(),
       'listing.getAllSymbols',
     );
-    return { message: MESSAGES.COMMON.SUCCESS, data };
+
+    const response = { message: MESSAGES.COMMON.SUCCESS, data };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.LISTING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
   }
 
-  /** Mã theo nhóm chỉ số */
   async getSymbolsByGroup(group: string) {
+    const cacheKey = `listing:symbols-by-group:${group}`;
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for symbols by group: ${group}`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const data = await this.http.withFallback(
       () => this.getSymbolsByGroupFromKbs(group),
       () => this.getSymbolsByGroupFromVci(group),
       'listing.getSymbolsByGroup',
     );
-    return { message: MESSAGES.COMMON.SUCCESS, data };
+
+    const response = { message: MESSAGES.COMMON.SUCCESS, data };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.LISTING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
   }
 
-  /** Danh sách ngành (KBS only) */
   async getSectors() {
+    const cacheKey = 'listing:sectors';
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for sectors`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const data = await this.http.kbsGet<any[]>('/sector/all');
-    return { message: MESSAGES.COMMON.SUCCESS, data };
+
+    const response = { message: MESSAGES.COMMON.SUCCESS, data };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.LISTING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
   }
 
-  /** Mã theo ngành */
   async getStocksBySector(code: number) {
+    const cacheKey = `listing:stocks-by-sector:${code}`;
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for stocks by sector: ${code}`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const raw = await this.http.kbsGet<any>('/sector/stock', { code, l: 1 });
-    const stocks = (raw?.stocks || []).map((s: any) => s.sb || s.SB || s.symbol);
-    return { message: MESSAGES.COMMON.SUCCESS, data: stocks };
+    const stocks = (raw?.stocks || []).map(
+      (s: any) => s.sb || s.SB || s.symbol,
+    );
+
+    const response = { message: MESSAGES.COMMON.SUCCESS, data: stocks };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.LISTING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
   }
 
-  /** Phân ngành ICB (VCI GraphQL) */
   async getIcbClassification() {
+    const cacheKey = 'listing:icb-classification';
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for ICB classification`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const query = `{
   CompaniesListingInfo {
     ticker
@@ -64,14 +167,34 @@ export class ListingService {
   }
 }`;
     const result = await this.http.vciGraphql<any>(query);
-    return {
+
+    const response = {
       message: MESSAGES.COMMON.SUCCESS,
       data: result?.data?.CompaniesListingInfo || [],
     };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.LISTING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
   }
 
-  /** Danh sách ICB codes (VCI GraphQL) */
   async getIcbCodes() {
+    const cacheKey = 'listing:icb-codes';
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for ICB codes`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const query = `query Query {
   ListIcbCode {
     icbCode
@@ -82,13 +205,20 @@ export class ListingService {
   }
 }`;
     const result = await this.http.vciGraphql<any>(query);
-    return {
+
+    const response = {
       message: MESSAGES.COMMON.SUCCESS,
       data: result?.data?.ListIcbCode || [],
     };
-  }
 
-  // ---------- KBS providers ----------
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.LISTING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
+  }
 
   private async getSymbolsFromKbs(): Promise<any[]> {
     const raw = await this.http.kbsGet<any[]>('/stock/search/data');
@@ -110,8 +240,6 @@ export class ListingService {
     return raw?.data || raw || [];
   }
 
-  // ---------- VCI providers ----------
-
   private async getSymbolsFromVci(): Promise<any[]> {
     const raw = await this.http.vciGet<any[]>('/price/symbols/getAll');
     return raw.map((item) => ({
@@ -127,7 +255,9 @@ export class ListingService {
   }
 
   private async getSymbolsByGroupFromVci(group: string): Promise<string[]> {
-    const raw = await this.http.vciGet<any[]>(`/price/symbols/getByGroup?group=${group}`);
+    const raw = await this.http.vciGet<any[]>(
+      `/price/symbols/getByGroup?group=${group}`,
+    );
     return raw.map((item) => item.symbol);
   }
 }

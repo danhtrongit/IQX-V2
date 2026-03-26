@@ -9,7 +9,10 @@ export class CreateCheckoutDto {
     example: 'MONTHLY',
     enumName: 'SubscriptionPlan',
   })
-  @IsEnum(SubscriptionPlan, { message: 'Gói đăng ký không hợp lệ. Chọn: MONTHLY, QUARTERLY, SEMI_ANNUAL, ANNUAL' })
+  @IsEnum(SubscriptionPlan, {
+    message:
+      'Gói đăng ký không hợp lệ. Chọn: MONTHLY, QUARTERLY, SEMI_ANNUAL, ANNUAL',
+  })
   @IsNotEmpty({ message: 'Gói đăng ký không được để trống' })
   plan: SubscriptionPlan;
 }

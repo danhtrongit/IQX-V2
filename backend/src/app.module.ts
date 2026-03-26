@@ -22,6 +22,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { RedisCacheModule } from './common/modules/redis-cache/redis-cache.module';
+import { RateLimiterModule } from './common/modules/rate-limiter/rate-limiter.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
         },
       }),
     }),
+    RedisCacheModule,
+    RateLimiterModule,
     PrismaModule,
     ProxyHttpModule,
     AuthModule,

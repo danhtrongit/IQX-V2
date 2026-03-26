@@ -139,6 +139,8 @@ model Stock {
   @@index([sectorCode])
   @@index([icbCode3])
   @@index([name])
+  @@index([symbol, name])
+  @@index([exchange, sectorCode])
   @@map("stocks")
 }
 

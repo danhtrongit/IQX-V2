@@ -1,10 +1,14 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
 export class WatchlistService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(userId: string, name: string, symbols: string[] = []) {
     const watchlist = await this.prisma.watchlist.create({
@@ -25,7 +29,11 @@ export class WatchlistService {
     return { message: MESSAGES.COMMON.SUCCESS, data: lists };
   }
 
-  async update(userId: string, id: string, data: { name?: string; symbols?: string[] }) {
+  async update(
+    userId: string,
+    id: string,
+    data: { name?: string; symbols?: string[] },
+  ) {
     const watchlist = await this.prisma.watchlist.findFirst({
       where: { id, userId },
     });
@@ -35,14 +43,18 @@ export class WatchlistService {
       where: { id },
       data: {
         name: data.name || watchlist.name,
-        symbols: data.symbols ? data.symbols.map((s) => s.toUpperCase()) : watchlist.symbols,
+        symbols: data.symbols
+          ? data.symbols.map((s) => s.toUpperCase())
+          : watchlist.symbols,
       },
     });
     return { message: 'Cập nhật thành công', data: updated };
   }
 
   async addSymbol(userId: string, id: string, symbol: string) {
-    const watchlist = await this.prisma.watchlist.findFirst({ where: { id, userId } });
+    const watchlist = await this.prisma.watchlist.findFirst({
+      where: { id, userId },
+    });
     if (!watchlist) throw new NotFoundException('Không tìm thấy danh sách');
 
     const upper = symbol.toUpperCase();
@@ -58,7 +70,9 @@ export class WatchlistService {
   }
 
   async removeSymbol(userId: string, id: string, symbol: string) {
-    const watchlist = await this.prisma.watchlist.findFirst({ where: { id, userId } });
+    const watchlist = await this.prisma.watchlist.findFirst({
+      where: { id, userId },
+    });
     if (!watchlist) throw new NotFoundException('Không tìm thấy danh sách');
 
     const upper = symbol.toUpperCase();
@@ -70,7 +84,9 @@ export class WatchlistService {
   }
 
   async remove(userId: string, id: string) {
-    const watchlist = await this.prisma.watchlist.findFirst({ where: { id, userId } });
+    const watchlist = await this.prisma.watchlist.findFirst({
+      where: { id, userId },
+    });
     if (!watchlist) throw new NotFoundException('Không tìm thấy danh sách');
 
     await this.prisma.watchlist.delete({ where: { id } });

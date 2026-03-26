@@ -15,10 +15,26 @@ export class AiNewsController {
 
   @Get('news')
   @ApiOperation({ summary: 'Tin doanh nghiệp — market hoặc theo mã CP' })
-  @ApiQuery({ name: 'ticker', required: false, description: 'Mã CP (VNM, VCI...). Để trống = tin thị trường' })
-  @ApiQuery({ name: 'industry', required: false, description: 'Slug ngành (real-estate, food-and-beverage...)' })
-  @ApiQuery({ name: 'sentiment', required: false, description: 'Positive | Neutral | Negative' })
-  @ApiQuery({ name: 'newsfrom', required: false, description: 'Slug nguồn tin (vietstock, cafef...)' })
+  @ApiQuery({
+    name: 'ticker',
+    required: false,
+    description: 'Mã CP (VNM, VCI...). Để trống = tin thị trường',
+  })
+  @ApiQuery({
+    name: 'industry',
+    required: false,
+    description: 'Slug ngành (real-estate, food-and-beverage...)',
+  })
+  @ApiQuery({
+    name: 'sentiment',
+    required: false,
+    description: 'Positive | Neutral | Negative',
+  })
+  @ApiQuery({
+    name: 'newsfrom',
+    required: false,
+    description: 'Slug nguồn tin (vietstock, cafef...)',
+  })
   @ApiQuery({ name: 'updateFrom', required: false, description: 'YYYY-MM-DD' })
   @ApiQuery({ name: 'updateTo', required: false, description: 'YYYY-MM-DD' })
   @ApiQuery({ name: 'page', required: false })

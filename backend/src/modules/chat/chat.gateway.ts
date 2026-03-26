@@ -230,7 +230,10 @@ export class ChatGateway
     this.assertAuth(client);
 
     try {
-      const result = await this.chatService.markAsRead(client.userId, data.roomId);
+      const result = await this.chatService.markAsRead(
+        client.userId,
+        data.roomId,
+      );
 
       this.server.to(`room:${data.roomId}`).emit('message_read', {
         userId: client.userId,
@@ -260,7 +263,9 @@ export class ChatGateway
         data.emoji,
       );
 
-      this.server.to(`room:${reaction.roomId}`).emit('reaction_added', reaction);
+      this.server
+        .to(`room:${reaction.roomId}`)
+        .emit('reaction_added', reaction);
 
       return reaction;
     } catch (error) {

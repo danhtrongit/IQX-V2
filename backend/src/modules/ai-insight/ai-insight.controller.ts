@@ -12,7 +12,8 @@ export class AiInsightController {
   @Get(':symbol')
   @ApiOperation({
     summary: 'Phân tích AI 6 lớp cho mã cổ phiếu',
-    description: 'Chạy phân tích 6 lớp: Xu hướng → Thanh khoản → Dòng tiền → Nội bộ → Tin tức → Tổng hợp hành động',
+    description:
+      'Chạy phân tích 6 lớp: Xu hướng → Thanh khoản → Dòng tiền → Nội bộ → Tin tức → Tổng hợp hành động',
   })
   analyze(@Param('symbol') symbol: string) {
     return this.aiInsightService.analyze(symbol);

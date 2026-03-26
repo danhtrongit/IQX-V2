@@ -37,9 +37,30 @@ export class InsightDataCollector {
       tickerScore,
       ohlcvRes,
     ] = await Promise.allSettled([
-      this.companyService.getSupplyDemand(upper, 'D', undefined, undefined, 0, 35),
-      this.companyService.getForeignFlow(upper, 'D', undefined, undefined, 0, 35),
-      this.companyService.getProprietaryFlow(upper, 'D', undefined, undefined, 0, 35),
+      this.companyService.getSupplyDemand(
+        upper,
+        'D',
+        undefined,
+        undefined,
+        0,
+        35,
+      ),
+      this.companyService.getForeignFlow(
+        upper,
+        'D',
+        undefined,
+        undefined,
+        0,
+        35,
+      ),
+      this.companyService.getProprietaryFlow(
+        upper,
+        'D',
+        undefined,
+        undefined,
+        0,
+        35,
+      ),
       this.companyService.getInsiderTransactions(upper, 0, 30),
       this.fetchNews(upper),
       this.fetchTickerScore(upper),
@@ -94,14 +115,17 @@ export class InsightDataCollector {
   // ── Fallback: extract OHLCV from supply-demand data ──
 
   private extractOHLCVFromSD(sdData: any[]): any[] {
-    return sdData.slice(0, 30).map((r: any) => ({
-      date: r.date || '',
-      open: r.openPrice ?? 0,
-      high: r.highPrice ?? 0,
-      low: r.lowPrice ?? 0,
-      close: r.closePrice ?? 0,
-      volume: r.totalVolume ?? 0,
-    })).reverse(); // oldest first
+    return sdData
+      .slice(0, 30)
+      .map((r: any) => ({
+        date: r.date || '',
+        open: r.openPrice ?? 0,
+        high: r.highPrice ?? 0,
+        low: r.lowPrice ?? 0,
+        close: r.closePrice ?? 0,
+        volume: r.totalVolume ?? 0,
+      }))
+      .reverse(); // oldest first
   }
 
   // ── AI News ──
@@ -126,13 +150,17 @@ export class InsightDataCollector {
     if (result.status === 'fulfilled') {
       return result.value?.data || [];
     }
-    this.logger.warn(`Service call failed: ${(result as any).reason?.message || 'unknown'}`);
+    this.logger.warn(
+      `Service call failed: ${(result as any).reason?.message || 'unknown'}`,
+    );
     return [];
   }
 
   private extract<T>(result: PromiseSettledResult<T>, fallback: T): T {
     if (result.status === 'fulfilled') return result.value;
-    this.logger.warn(`Data fetch failed: ${(result as any).reason?.message || 'unknown'}`);
+    this.logger.warn(
+      `Data fetch failed: ${(result as any).reason?.message || 'unknown'}`,
+    );
     return fallback;
   }
 }

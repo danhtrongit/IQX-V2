@@ -16,7 +16,10 @@ enum SendMessageType {
 }
 
 export class SendMessageDto {
-  @ApiPropertyOptional({ description: 'Nội dung tin nhắn', example: 'Xin chào!' })
+  @ApiPropertyOptional({
+    description: 'Nội dung tin nhắn',
+    example: 'Xin chào!',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(5000)

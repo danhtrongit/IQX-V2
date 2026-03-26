@@ -54,7 +54,11 @@ export class CompanyController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.companyService.getNews(symbol, Number(page) || 1, Number(limit) || 10);
+    return this.companyService.getNews(
+      symbol,
+      Number(page) || 1,
+      Number(limit) || 10,
+    );
   }
 
   @Get(':symbol/internal-trading')
@@ -66,7 +70,11 @@ export class CompanyController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.companyService.getInternalTrading(symbol, Number(page) || 1, Number(limit) || 10);
+    return this.companyService.getInternalTrading(
+      symbol,
+      Number(page) || 1,
+      Number(limit) || 10,
+    );
   }
 
   // ============================================================
@@ -75,7 +83,11 @@ export class CompanyController {
 
   @Get(':symbol/foreign-flow')
   @ApiOperation({ summary: 'Dòng tiền nước ngoài (VCI IQ Insight)' })
-  @ApiQuery({ name: 'timeFrame', required: false, description: 'D | W | M | Q | Y' })
+  @ApiQuery({
+    name: 'timeFrame',
+    required: false,
+    description: 'D | W | M | Q | Y',
+  })
   @ApiQuery({ name: 'fromDate', required: false, description: 'YYYYMMDD' })
   @ApiQuery({ name: 'toDate', required: false, description: 'YYYYMMDD' })
   @ApiQuery({ name: 'page', required: false })
@@ -100,7 +112,11 @@ export class CompanyController {
 
   @Get(':symbol/proprietary-flow')
   @ApiOperation({ summary: 'Dòng tiền tự doanh (VCI IQ Insight)' })
-  @ApiQuery({ name: 'timeFrame', required: false, description: 'D | W | M | Q | Y' })
+  @ApiQuery({
+    name: 'timeFrame',
+    required: false,
+    description: 'D | W | M | Q | Y',
+  })
   @ApiQuery({ name: 'fromDate', required: false, description: 'YYYYMMDD' })
   @ApiQuery({ name: 'toDate', required: false, description: 'YYYYMMDD' })
   @ApiQuery({ name: 'page', required: false })
@@ -124,7 +140,9 @@ export class CompanyController {
   }
 
   @Get(':symbol/insider-transactions')
-  @ApiOperation({ summary: 'Giao dịch nội bộ chi tiết (VCI IQ + KBS fallback)' })
+  @ApiOperation({
+    summary: 'Giao dịch nội bộ chi tiết (VCI IQ + KBS fallback)',
+  })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'size', required: false })
   getInsiderTransactions(
@@ -140,8 +158,14 @@ export class CompanyController {
   }
 
   @Get(':symbol/supply-demand')
-  @ApiOperation({ summary: 'Cung cầu — dữ liệu đặt lệnh & chưa khớp (VCI IQ Insight)' })
-  @ApiQuery({ name: 'timeFrame', required: false, description: 'D | W | M | Q | Y' })
+  @ApiOperation({
+    summary: 'Cung cầu — dữ liệu đặt lệnh & chưa khớp (VCI IQ Insight)',
+  })
+  @ApiQuery({
+    name: 'timeFrame',
+    required: false,
+    description: 'D | W | M | Q | Y',
+  })
   @ApiQuery({ name: 'fromDate', required: false, description: 'YYYYMMDD' })
   @ApiQuery({ name: 'toDate', required: false, description: 'YYYYMMDD' })
   @ApiQuery({ name: 'page', required: false })

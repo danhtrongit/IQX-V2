@@ -14,7 +14,9 @@ export class ProxyHttpService {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
   }
 
-  private buildHeaders(sourceHeaders?: Record<string, string>): Record<string, string> {
+  private buildHeaders(
+    sourceHeaders?: Record<string, string>,
+  ): Record<string, string> {
     return {
       ...DEFAULT_HEADERS,
       'User-Agent': this.getRandomUserAgent(),
@@ -50,19 +52,29 @@ export class ProxyHttpService {
   }
 
   /** KBS GET shorthand */
-  async kbsGet<T = any>(path: string, params?: Record<string, any>): Promise<T> {
+  async kbsGet<T = any>(
+    path: string,
+    params?: Record<string, any>,
+  ): Promise<T> {
     const url = new URL(`${DATA_SOURCES.KBS.BASE_URL}${path}`);
     if (params) {
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+      Object.entries(params).forEach(([k, v]) =>
+        url.searchParams.set(k, String(v)),
+      );
     }
     return this.get<T>(url.toString(), DATA_SOURCES.KBS.HEADERS);
   }
 
   /** KBS SAS GET shorthand */
-  async kbsSasGet<T = any>(path: string, params?: Record<string, any>): Promise<T> {
+  async kbsSasGet<T = any>(
+    path: string,
+    params?: Record<string, any>,
+  ): Promise<T> {
     const url = new URL(`${DATA_SOURCES.KBS.SAS_URL}${path}`);
     if (params) {
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+      Object.entries(params).forEach(([k, v]) =>
+        url.searchParams.set(k, String(v)),
+      );
     }
     return this.get<T>(url.toString(), DATA_SOURCES.KBS.HEADERS);
   }
@@ -74,7 +86,10 @@ export class ProxyHttpService {
     extraHeaders?: Record<string, string>,
   ): Promise<T> {
     const url = `${DATA_SOURCES.KBS.BASE_URL}${path}`;
-    return this.post<T>(url, body, { ...DATA_SOURCES.KBS.HEADERS, ...extraHeaders });
+    return this.post<T>(url, body, {
+      ...DATA_SOURCES.KBS.HEADERS,
+      ...extraHeaders,
+    });
   }
 
   /** VCI GET shorthand */
@@ -90,7 +105,10 @@ export class ProxyHttpService {
   }
 
   /** VCI GraphQL shorthand */
-  async vciGraphql<T = any>(query: string, variables: Record<string, any> = {}): Promise<T> {
+  async vciGraphql<T = any>(
+    query: string,
+    variables: Record<string, any> = {},
+  ): Promise<T> {
     return this.post<T>(
       DATA_SOURCES.VCI.GRAPHQL_URL,
       { query, variables },
@@ -99,7 +117,10 @@ export class ProxyHttpService {
   }
 
   /** VCI IQ Insight GET shorthand */
-  async vciIqGet<T = any>(path: string, params?: Record<string, any>): Promise<T> {
+  async vciIqGet<T = any>(
+    path: string,
+    params?: Record<string, any>,
+  ): Promise<T> {
     const url = new URL(`${DATA_SOURCES.VCI.IQ_BASE_URL}${path}`);
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
@@ -110,21 +131,30 @@ export class ProxyHttpService {
   }
 
   /** VCI AI News GET shorthand */
-  async vciAiNewsGet<T = any>(path: string, params?: Record<string, any>): Promise<T> {
+  async vciAiNewsGet<T = any>(
+    path: string,
+    params?: Record<string, any>,
+  ): Promise<T> {
     const url = new URL(`${DATA_SOURCES.VCI.AI_NEWS_BASE_URL}${path}`);
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
+        if (v !== undefined && v !== null && v !== '')
+          url.searchParams.set(k, String(v));
       });
     }
     return this.get<T>(url.toString(), DATA_SOURCES.VCI.HEADERS);
   }
 
   /** MSN GET shorthand */
-  async msnGet<T = any>(path: string, params?: Record<string, any>): Promise<T> {
+  async msnGet<T = any>(
+    path: string,
+    params?: Record<string, any>,
+  ): Promise<T> {
     const url = new URL(`${DATA_SOURCES.MSN.BASE_URL}${path}`);
     if (params) {
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+      Object.entries(params).forEach(([k, v]) =>
+        url.searchParams.set(k, String(v)),
+      );
     }
     return this.get<T>(url.toString(), DATA_SOURCES.MSN.HEADERS);
   }

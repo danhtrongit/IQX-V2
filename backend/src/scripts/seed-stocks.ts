@@ -92,7 +92,7 @@ async function main() {
     icbCode1 icbCode2 icbCode3 icbCode4 comTypeCode __typename
   }
 }`;
-    let icbMap = new Map<
+    const icbMap = new Map<
       string,
       {
         icbCode1: string;
@@ -129,7 +129,9 @@ async function main() {
       }
       console.log(`  → ${icbMap.size} mã có ICB`);
     } catch (err: any) {
-      console.warn(`  ⚠ VCI ICB fetch failed: ${err.message}. Tiếp tục không có ICB.`);
+      console.warn(
+        `  ⚠ VCI ICB fetch failed: ${err.message}. Tiếp tục không có ICB.`,
+      );
     }
 
     // ===== Upsert sectors =====
@@ -159,7 +161,8 @@ async function main() {
 
       const sectorInfo = sectorStockMap.get(symbol);
       const icbInfo = icbMap.get(symbol);
-      const exchange = KBS_EXCHANGE_MAP[item.exchange] || item.exchange || 'UNKNOWN';
+      const exchange =
+        KBS_EXCHANGE_MAP[item.exchange] || item.exchange || 'UNKNOWN';
 
       const data = {
         name: icbInfo?.organName || item.name || symbol,

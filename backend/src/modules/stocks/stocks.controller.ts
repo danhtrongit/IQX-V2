@@ -11,10 +11,26 @@ export class StocksController {
 
   @Get()
   @ApiOperation({ summary: 'Tìm kiếm mã chứng khoán' })
-  @ApiQuery({ name: 'q', required: false, description: 'Từ khóa (symbol, tên VN/EN)' })
-  @ApiQuery({ name: 'exchange', required: false, description: 'Sàn: HOSE, HNX, UPCOM' })
-  @ApiQuery({ name: 'sectorCode', required: false, description: 'Mã ngành KBS' })
-  @ApiQuery({ name: 'icbCode', required: false, description: 'Mã ICB (level 1-4)' })
+  @ApiQuery({
+    name: 'q',
+    required: false,
+    description: 'Từ khóa (symbol, tên VN/EN)',
+  })
+  @ApiQuery({
+    name: 'exchange',
+    required: false,
+    description: 'Sàn: HOSE, HNX, UPCOM',
+  })
+  @ApiQuery({
+    name: 'sectorCode',
+    required: false,
+    description: 'Mã ngành KBS',
+  })
+  @ApiQuery({
+    name: 'icbCode',
+    required: false,
+    description: 'Mã ICB (level 1-4)',
+  })
   @ApiQuery({ name: 'page', required: false, example: '1' })
   @ApiQuery({ name: 'limit', required: false, example: '20' })
   search(
@@ -26,7 +42,10 @@ export class StocksController {
     @Query('limit') limit?: string,
   ) {
     return this.stocksService.search(
-      q, exchange, sectorCode, icbCode,
+      q,
+      exchange,
+      sectorCode,
+      icbCode,
       Number(page) || 1,
       Number(limit) || 20,
     );

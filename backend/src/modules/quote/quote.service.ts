@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProxyHttpService } from '../../common/services/proxy-http.service';
-import { KBS_INTERVAL_MAP, VCI_INTERVAL_MAP } from '../../common/constants/mappings.constant';
+import {
+  KBS_INTERVAL_MAP,
+  VCI_INTERVAL_MAP,
+} from '../../common/constants/mappings.constant';
 import { MESSAGES } from '../../common/constants/messages.constant';
 
 @Injectable()
@@ -10,7 +13,12 @@ export class QuoteService {
   constructor(private http: ProxyHttpService) {}
 
   /** Giá lịch sử OHLCV */
-  async getHistory(symbol: string, interval = '1D', from?: string, to?: string) {
+  async getHistory(
+    symbol: string,
+    interval = '1D',
+    from?: string,
+    to?: string,
+  ) {
     const data = await this.http.withFallback(
       () => this.getHistoryFromKbs(symbol, interval, from, to),
       () => this.getHistoryFromVci(symbol, interval),
@@ -70,7 +78,11 @@ export class QuoteService {
     }));
   }
 
-  private async getIntradayFromKbs(symbol: string, page: number, limit: number) {
+  private async getIntradayFromKbs(
+    symbol: string,
+    page: number,
+    limit: number,
+  ) {
     const raw = await this.http.kbsGet<any>(
       `/trade/history/${symbol.toUpperCase()}`,
       { page, limit },

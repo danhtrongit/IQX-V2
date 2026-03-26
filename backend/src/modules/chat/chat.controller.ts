@@ -30,10 +30,7 @@ export class ChatController {
 
   @Post('rooms')
   @ApiOperation({ summary: 'Tạo phòng chat mới' })
-  createRoom(
-    @CurrentUser('sub') userId: string,
-    @Body() dto: CreateRoomDto,
-  ) {
+  createRoom(@CurrentUser('sub') userId: string, @Body() dto: CreateRoomDto) {
     return this.chatService.createRoom(userId, dto);
   }
 
@@ -54,10 +51,7 @@ export class ChatController {
 
   @Get('rooms/:id')
   @ApiOperation({ summary: 'Chi tiết phòng chat' })
-  getRoomById(
-    @CurrentUser('sub') userId: string,
-    @Param('id') roomId: string,
-  ) {
+  getRoomById(@CurrentUser('sub') userId: string, @Param('id') roomId: string) {
     return this.chatService.getRoomById(userId, roomId);
   }
 
@@ -74,10 +68,7 @@ export class ChatController {
   @Delete('rooms/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa phòng chat (Owner only)' })
-  deleteRoom(
-    @CurrentUser('sub') userId: string,
-    @Param('id') roomId: string,
-  ) {
+  deleteRoom(@CurrentUser('sub') userId: string, @Param('id') roomId: string) {
     return this.chatService.deleteRoom(userId, roomId);
   }
 
@@ -162,6 +153,11 @@ export class ChatController {
     @CurrentUser('sub') userId: string,
     @Query() dto: SearchMessagesDto,
   ) {
-    return this.chatService.searchMessages(userId, dto.keyword, dto.roomId, dto);
+    return this.chatService.searchMessages(
+      userId,
+      dto.keyword,
+      dto.roomId,
+      dto,
+    );
   }
 }

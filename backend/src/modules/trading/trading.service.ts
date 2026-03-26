@@ -61,7 +61,9 @@ export class TradingService {
   // ---------- VCI ----------
 
   private async getPriceBoardFromVci(symbols: string[]) {
-    const raw = await this.http.vciPost<any[]>('/price/symbols/getList', { symbols });
+    const raw = await this.http.vciPost<any[]>('/price/symbols/getList', {
+      symbols,
+    });
 
     return (raw || []).map((item) => {
       const li = item.listingInfo || {};

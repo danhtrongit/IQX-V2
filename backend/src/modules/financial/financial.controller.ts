@@ -11,10 +11,24 @@ export class FinancialController {
 
   @Get(':symbol/report')
   @ApiOperation({ summary: 'Báo cáo tài chính (CDKT, KQKD, LCTT, CSTC)' })
-  @ApiQuery({ name: 'type', description: 'Loại báo cáo: CDKT, KQKD, LCTT, CSTC', example: 'KQKD' })
-  @ApiQuery({ name: 'termType', required: false, description: '1 = năm, 2 = quý', example: '1' })
+  @ApiQuery({
+    name: 'type',
+    description: 'Loại báo cáo: CDKT, KQKD, LCTT, CSTC',
+    example: 'KQKD',
+  })
+  @ApiQuery({
+    name: 'termType',
+    required: false,
+    description: '1 = năm, 2 = quý',
+    example: '1',
+  })
   @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'pageSize', required: false, description: 'Số kỳ', example: '4' })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    description: 'Số kỳ',
+    example: '4',
+  })
   getReport(
     @Param('symbol') symbol: string,
     @Query('type') type: string,
@@ -33,11 +47,13 @@ export class FinancialController {
 
   @Get(':symbol/ratios')
   @ApiOperation({ summary: 'Chỉ số tài chính (VCI GraphQL)' })
-  @ApiQuery({ name: 'period', required: false, description: 'Q = quý, Y = năm', example: 'Q' })
-  getRatios(
-    @Param('symbol') symbol: string,
-    @Query('period') period?: string,
-  ) {
+  @ApiQuery({
+    name: 'period',
+    required: false,
+    description: 'Q = quý, Y = năm',
+    example: 'Q',
+  })
+  getRatios(@Param('symbol') symbol: string, @Query('period') period?: string) {
     return this.financialService.getRatios(symbol, period || 'Q');
   }
 

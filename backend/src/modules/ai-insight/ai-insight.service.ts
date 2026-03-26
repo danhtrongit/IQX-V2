@@ -1,8 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InsightDataCollector, InsightRawData } from './insight-data-collector.service';
+import {
+  InsightDataCollector,
+  InsightRawData,
+} from './insight-data-collector.service';
 import { LAYER_PROMPTS } from './prompts.constant';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import {
+  RedisCacheService,
+  CacheType,
+} from '../../common/modules/redis-cache/redis-cache.service';
 
 interface LayerResult {
   layer: string;
@@ -19,6 +26,7 @@ export class AiInsightService {
   constructor(
     private config: ConfigService,
     private dataCollector: InsightDataCollector,
+    private cacheService: RedisCacheService,
   ) {
     this.baseUrl = this.config.get<string>('AI_BASE_URL', '');
     this.apiKey = this.config.get<string>('AI_API_KEY', '');
@@ -27,6 +35,18 @@ export class AiInsightService {
 
   async analyze(symbol: string) {
     const upper = symbol.toUpperCase();
+    const cacheKey = `ai-insight:${upper}`;
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.AI_INSIGHT);
+      if (cached) {
+        this.logger.debug(`Cache HIT for AI insight: ${upper}`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed for AI insight: ${error.message}`);
+    }
+
     this.logger.log(`Starting 6-layer analysis for ${upper}`);
 
     if (!this.apiKey || this.apiKey === 'your_v98dev_api_key_here') {
@@ -53,7 +73,7 @@ export class AiInsightService {
     // Build rawInput for frontend detail panels
     const rawInput = this.buildRawInputs(data);
 
-    return {
+    const response = {
       message: MESSAGES.COMMON.SUCCESS,
       data: {
         symbol: upper,
@@ -79,11 +99,22 @@ export class AiInsightService {
         },
       },
     };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.AI_INSIGHT);
+    } catch (error) {
+      this.logger.warn(`Cache set failed for AI insight: ${error.message}`);
+    }
+
+    return response;
   }
 
   // ── Chat Completion ──
 
-  private async chatCompletion(systemPrompt: string, userMessage: string): Promise<string> {
+  private async chatCompletion(
+    systemPrompt: string,
+    userMessage: string,
+  ): Promise<string> {
     const res = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
@@ -114,7 +145,10 @@ export class AiInsightService {
 
   // ── Layer Runners ──
 
-  private async runLayer(layer: keyof typeof LAYER_PROMPTS, data: InsightRawData): Promise<LayerResult> {
+  private async runLayer(
+    layer: keyof typeof LAYER_PROMPTS,
+    data: InsightRawData,
+  ): Promise<LayerResult> {
     try {
       const systemPrompt = LAYER_PROMPTS[layer];
       const userInput = this.buildUserInput(layer, data);
@@ -127,7 +161,13 @@ export class AiInsightService {
     }
   }
 
-  private async runL6(l1: LayerResult, l2: LayerResult, l3: LayerResult, l4: LayerResult, l5: LayerResult): Promise<LayerResult> {
+  private async runL6(
+    l1: LayerResult,
+    l2: LayerResult,
+    l3: LayerResult,
+    l4: LayerResult,
+    l5: LayerResult,
+  ): Promise<LayerResult> {
     try {
       const systemPrompt = LAYER_PROMPTS.L6;
       const userInput = `Dưới đây là output JSON từ L1-L5. Hãy tổng hợp.
@@ -160,30 +200,49 @@ ${JSON.stringify(l5.output)}`;
 
   private buildUserInput(layer: string, data: InsightRawData): string {
     switch (layer) {
-      case 'L1': return this.buildL1Input(data);
-      case 'L2': return this.buildL2Input(data);
-      case 'L3': return this.buildL3Input(data);
-      case 'L4': return this.buildL4Input(data);
-      case 'L5': return this.buildL5Input(data);
-      default: return '';
+      case 'L1':
+        return this.buildL1Input(data);
+      case 'L2':
+        return this.buildL2Input(data);
+      case 'L3':
+        return this.buildL3Input(data);
+      case 'L4':
+        return this.buildL4Input(data);
+      case 'L5':
+        return this.buildL5Input(data);
+      default:
+        return '';
     }
   }
 
   private buildL1Input(d: InsightRawData): string {
     const last10 = d.ohlcv.slice(-10);
     const last20 = d.ohlcv.slice(-20);
-    const ma10 = last10.length ? last10.reduce((s, r) => s + r.close, 0) / last10.length : 0;
-    const ma20 = last20.length ? last20.reduce((s, r) => s + r.close, 0) / last20.length : 0;
-    const volMa10 = last10.length ? last10.reduce((s, r) => s + r.volume, 0) / last10.length : 0;
-    const volMa20 = last20.length ? last20.reduce((s, r) => s + r.volume, 0) / last20.length : 0;
+    const ma10 = last10.length
+      ? last10.reduce((s, r) => s + r.close, 0) / last10.length
+      : 0;
+    const ma20 = last20.length
+      ? last20.reduce((s, r) => s + r.close, 0) / last20.length
+      : 0;
+    const volMa10 = last10.length
+      ? last10.reduce((s, r) => s + r.volume, 0) / last10.length
+      : 0;
+    const volMa20 = last20.length
+      ? last20.reduce((s, r) => s + r.volume, 0) / last20.length
+      : 0;
 
     // MA20 slope (vs 5 sessions ago)
     const prev5 = d.ohlcv.slice(-25, -20);
-    const ma20_5ago = prev5.length >= 5
-      ? d.ohlcv.slice(-25).slice(0, 20).reduce((s, r) => s + r.close, 0) / 20
-      : ma20;
+    const ma20_5ago =
+      prev5.length >= 5
+        ? d.ohlcv
+            .slice(-25)
+            .slice(0, 20)
+            .reduce((s, r) => s + r.close, 0) / 20
+        : ma20;
     const slopePct = ma20 ? ((ma20 - ma20_5ago) / ma20_5ago) * 100 : 0;
-    const ma20Slope = slopePct >= 0.3 ? 'đi lên' : slopePct <= -0.3 ? 'đi xuống' : 'phẳng';
+    const ma20Slope =
+      slopePct >= 0.3 ? 'đi lên' : slopePct <= -0.3 ? 'đi xuống' : 'phẳng';
 
     const latestClose = d.ohlcv.length ? d.ohlcv[d.ohlcv.length - 1].close : 0;
     const priceVsMa20 = ma20 ? ((latestClose - ma20) / ma20) * 100 : 0;
@@ -193,9 +252,12 @@ ${JSON.stringify(l5.output)}`;
       ? `Giá hiện tại: ${d.realtime.price}, Volume: ${d.realtime.volume}`
       : `Giá đóng cửa gần nhất: ${latestClose.toFixed(2)}`;
 
-    const ohlcvStr = d.ohlcv.map(r =>
-      `${r.date}: O=${r.open} H=${r.high} L=${r.low} C=${r.close} V=${r.volume}`
-    ).join('\n');
+    const ohlcvStr = d.ohlcv
+      .map(
+        (r) =>
+          `${r.date}: O=${r.open} H=${r.high} L=${r.low} C=${r.close} V=${r.volume}`,
+      )
+      .join('\n');
 
     return `Mã: ${d.symbol}
 
@@ -214,7 +276,8 @@ Phân tích theo quy tắc, trả JSON.`;
   }
 
   private buildL2Input(d: InsightRawData): string {
-    if (!d.supplyDemand.length) return `Mã: ${d.symbol}\nKhông có dữ liệu cung cầu.\nTrả JSON với giá trị "Chưa đủ dữ liệu".`;
+    if (!d.supplyDemand.length)
+      return `Mã: ${d.symbol}\nKhông có dữ liệu cung cầu.\nTrả JSON với giá trị "Chưa đủ dữ liệu".`;
 
     const latest = d.supplyDemand[0];
     const avg = (key: string) => this.avg(d.supplyDemand, key);
@@ -236,22 +299,39 @@ Phân tích, trả JSON.`;
   private buildL3Input(d: InsightRawData): string {
     const summary = (arr: any[], label: string) => {
       if (!arr.length) return `${label}: Không có dữ liệu`;
-      const buyDays = arr.filter(r => (r.matchNetVolume ?? r.totalNetVolume ?? 0) > 0).length;
-      const totalNet = arr.reduce((s, r) => s + (r.totalNetVolume ?? r.matchNetVolume ?? 0), 0);
+      const buyDays = arr.filter(
+        (r) => (r.matchNetVolume ?? r.totalNetVolume ?? 0) > 0,
+      ).length;
+      const totalNet = arr.reduce(
+        (s, r) => s + (r.totalNetVolume ?? r.matchNetVolume ?? 0),
+        0,
+      );
       return `${label}: ${buyDays}/${arr.length} phiên mua ròng, tổng ròng=${totalNet > 0 ? '+' : ''}${totalNet}`;
     };
 
-    const priceChange = d.ohlcv.length >= 5
-      ? ((d.ohlcv[d.ohlcv.length - 1].close - d.ohlcv[d.ohlcv.length - 5].close) / d.ohlcv[d.ohlcv.length - 5].close * 100).toFixed(2)
-      : '0';
+    const priceChange =
+      d.ohlcv.length >= 5
+        ? (
+            ((d.ohlcv[d.ohlcv.length - 1].close -
+              d.ohlcv[d.ohlcv.length - 5].close) /
+              d.ohlcv[d.ohlcv.length - 5].close) *
+            100
+          ).toFixed(2)
+        : '0';
 
-    const ffDetail = d.foreignFlow.slice(0, 10).map(r =>
-      `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`
-    ).join('\n');
+    const ffDetail = d.foreignFlow
+      .slice(0, 10)
+      .map(
+        (r) => `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`,
+      )
+      .join('\n');
 
-    const pfDetail = d.proprietaryFlow.slice(0, 10).map(r =>
-      `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`
-    ).join('\n');
+    const pfDetail = d.proprietaryFlow
+      .slice(0, 10)
+      .map(
+        (r) => `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`,
+      )
+      .join('\n');
 
     return `Mã: ${d.symbol}
 Hướng giá 5 phiên: ${priceChange}%
@@ -268,14 +348,23 @@ Phân tích, trả JSON.`;
   }
 
   private buildL4Input(d: InsightRawData): string {
-    if (!d.insiderTransactions.length) return `Mã: ${d.symbol}\nKhông có GD nội bộ.\nTrả JSON.`;
+    if (!d.insiderTransactions.length)
+      return `Mã: ${d.symbol}\nKhông có GD nội bộ.\nTrả JSON.`;
 
-    const buys = d.insiderTransactions.filter(r => r.action?.includes('Mua') || r.action?.includes('mua'));
-    const sells = d.insiderTransactions.filter(r => r.action?.includes('Bán') || r.action?.includes('bán'));
+    const buys = d.insiderTransactions.filter(
+      (r) => r.action?.includes('Mua') || r.action?.includes('mua'),
+    );
+    const sells = d.insiderTransactions.filter(
+      (r) => r.action?.includes('Bán') || r.action?.includes('bán'),
+    );
 
-    const recent5 = d.insiderTransactions.slice(0, 5).map(r =>
-      `${r.action} | KL=${r.shareExecuted || r.shareRegistered} | ${r.startDate?.split('T')[0] || ''}`
-    ).join('\n');
+    const recent5 = d.insiderTransactions
+      .slice(0, 5)
+      .map(
+        (r) =>
+          `${r.action} | KL=${r.shareExecuted || r.shareRegistered} | ${r.startDate?.split('T')[0] || ''}`,
+      )
+      .join('\n');
 
     return `Mã: ${d.symbol}
 Tổng: ${d.insiderTransactions.length} thông báo (Mua: ${buys.length}, Bán: ${sells.length})
@@ -286,9 +375,12 @@ Phân tích, trả JSON.`;
   }
 
   private buildL5Input(d: InsightRawData): string {
-    const newsStr = d.news.map((n: any, i: number) =>
-      `${i + 1}. ${n.title} (${n.sourceName || ''}, ${n.updatedAt?.split(' ')[0] || ''})`
-    ).join('\n');
+    const newsStr = d.news
+      .map(
+        (n: any, i: number) =>
+          `${i + 1}. ${n.title} (${n.sourceName || ''}, ${n.updatedAt?.split(' ')[0] || ''})`,
+      )
+      .join('\n');
 
     const scoreStr = d.tickerScore
       ? `Điểm AI: ${d.tickerScore.score}/10, Tích cực=${d.tickerScore.countPositive}, Tiêu cực=${d.tickerScore.countNegative}`
@@ -308,11 +400,21 @@ Tóm tắt từng tin, trả JSON.`;
   private buildRawInputs(data: InsightRawData) {
     const last10 = data.ohlcv.slice(-10);
     const last20 = data.ohlcv.slice(-20);
-    const ma10 = last10.length ? +(last10.reduce((s, r) => s + r.close, 0) / last10.length).toFixed(2) : 0;
-    const ma20 = last20.length ? +(last20.reduce((s, r) => s + r.close, 0) / last20.length).toFixed(2) : 0;
-    const volMa10 = last10.length ? Math.round(last10.reduce((s, r) => s + r.volume, 0) / last10.length) : 0;
-    const volMa20 = last20.length ? Math.round(last20.reduce((s, r) => s + r.volume, 0) / last20.length) : 0;
-    const latestClose = data.ohlcv.length ? data.ohlcv[data.ohlcv.length - 1].close : 0;
+    const ma10 = last10.length
+      ? +(last10.reduce((s, r) => s + r.close, 0) / last10.length).toFixed(2)
+      : 0;
+    const ma20 = last20.length
+      ? +(last20.reduce((s, r) => s + r.close, 0) / last20.length).toFixed(2)
+      : 0;
+    const volMa10 = last10.length
+      ? Math.round(last10.reduce((s, r) => s + r.volume, 0) / last10.length)
+      : 0;
+    const volMa20 = last20.length
+      ? Math.round(last20.reduce((s, r) => s + r.volume, 0) / last20.length)
+      : 0;
+    const latestClose = data.ohlcv.length
+      ? data.ohlcv[data.ohlcv.length - 1].close
+      : 0;
 
     return {
       trend: {
@@ -322,11 +424,19 @@ Tóm tắt từng tin, trả JSON.`;
       },
       liquidity: {
         latest: data.supplyDemand[0] || null,
-        avg30: data.supplyDemand.length ? {
-          buyUnmatchedVolume: Math.round(this.avg(data.supplyDemand, 'buyUnmatchedVolume')),
-          sellUnmatchedVolume: Math.round(this.avg(data.supplyDemand, 'sellUnmatchedVolume')),
-          totalVolume: Math.round(this.avg(data.supplyDemand, 'totalVolume')),
-        } : null,
+        avg30: data.supplyDemand.length
+          ? {
+              buyUnmatchedVolume: Math.round(
+                this.avg(data.supplyDemand, 'buyUnmatchedVolume'),
+              ),
+              sellUnmatchedVolume: Math.round(
+                this.avg(data.supplyDemand, 'sellUnmatchedVolume'),
+              ),
+              totalVolume: Math.round(
+                this.avg(data.supplyDemand, 'totalVolume'),
+              ),
+            }
+          : null,
         history: data.supplyDemand.slice(0, 10),
       },
       moneyFlow: {
@@ -350,7 +460,9 @@ Tóm tắt từng tin, trả JSON.`;
       // Strip markdown code fences if present
       let cleaned = raw;
       if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+        cleaned = cleaned
+          .replace(/^```(?:json)?\s*/, '')
+          .replace(/\s*```$/, '');
       }
       return JSON.parse(cleaned);
     } catch {

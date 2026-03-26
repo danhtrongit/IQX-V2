@@ -11,7 +11,11 @@ export class ListingController {
 
   @Get('symbols')
   @ApiOperation({ summary: 'Lấy tất cả mã chứng khoán' })
-  @ApiQuery({ name: 'group', required: false, description: 'Lọc theo nhóm (VN30, HOSE, HNX...)' })
+  @ApiQuery({
+    name: 'group',
+    required: false,
+    description: 'Lọc theo nhóm (VN30, HOSE, HNX...)',
+  })
   getSymbols(@Query('group') group?: string) {
     if (group) return this.listingService.getSymbolsByGroup(group);
     return this.listingService.getAllSymbols();

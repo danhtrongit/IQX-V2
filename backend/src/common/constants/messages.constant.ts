@@ -41,7 +41,8 @@ export const MESSAGES = {
     ROOM_NOT_FOUND: 'Không tìm thấy phòng chat',
     ROOMS_LISTED: 'Lấy danh sách phòng chat thành công',
     NOT_A_MEMBER: 'Bạn không phải thành viên của phòng chat này',
-    INSUFFICIENT_ROLE: 'Bạn không có quyền thực hiện thao tác này trong phòng chat',
+    INSUFFICIENT_ROLE:
+      'Bạn không có quyền thực hiện thao tác này trong phòng chat',
     CANNOT_DM_SELF: 'Không thể tạo tin nhắn riêng với chính mình',
     CANNOT_ADD_TO_DIRECT: 'Không thể thêm thành viên vào tin nhắn riêng',
     MEMBERS_ADDED: 'Thêm thành viên thành công',

@@ -60,14 +60,14 @@ function ActionButton({ action }: { action: QuickAction }) {
   )
 }
 
-export function RightToolbar() {
+export function RightToolbar({ onActionClick }: { onActionClick?: (id: string) => void }) {
   const { isOpen, setIsOpen, rooms } = useChat()
 
   const totalUnread = rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0)
 
   const INFO_ACTIONS: QuickAction[] = [
-    { icon: <Newspaper className="size-4" />, label: "Tin tức", id: "news", badge: 3 },
-    { icon: <Lightbulb className="size-4" />, label: "AI Phân tích", id: "ai-insight" },
+    { icon: <Newspaper className="size-4" />, label: "Tin tức", id: "news", badge: 3, onClick: () => onActionClick?.("news") },
+    { icon: <Lightbulb className="size-4" />, label: "AI Phân tích", id: "ai-insight", onClick: () => onActionClick?.("ai-insight") },
     {
       icon: <MessageSquare className={`size-4 ${isOpen ? "text-primary" : ""}`} />,
       label: "Chat / Thảo luận",
@@ -75,7 +75,7 @@ export function RightToolbar() {
       badge: totalUnread,
       onClick: () => setIsOpen(!isOpen),
     },
-    { icon: <Bell className="size-4" />, label: "Cảnh báo giá", id: "alerts" },
+    { icon: <Bell className="size-4" />, label: "Cảnh báo giá", id: "alerts", onClick: () => onActionClick?.("alerts") },
   ]
 
   return (
@@ -86,7 +86,7 @@ export function RightToolbar() {
       {/* Quick Trading Actions */}
       <div className="flex flex-col items-center gap-0.5">
         {QUICK_ACTIONS.map((action) => (
-          <ActionButton key={action.id} action={action} />
+          <ActionButton key={action.id} action={{ ...action, onClick: action.onClick || (() => onActionClick?.(action.id)) }} />
         ))}
       </div>
 

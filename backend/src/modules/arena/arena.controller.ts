@@ -1,5 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ArenaService } from './arena.service';
 import { LeaderboardService } from './leaderboard.service';
 import { WatchlistService } from './watchlist.service';
@@ -73,14 +88,21 @@ export class ArenaController {
   // ============ Limit Orders ============
 
   @Post('orders/limit-buy')
-  @ApiOperation({ summary: 'Lệnh giới hạn MUA (Limit Order) - chờ khớp khi giá ≤ triggerPrice' })
+  @ApiOperation({
+    summary:
+      'Lệnh giới hạn MUA (Limit Order) - chờ khớp khi giá ≤ triggerPrice',
+  })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         symbol: { type: 'string', example: 'VCB' },
         quantity: { type: 'number', example: 100 },
-        triggerPrice: { type: 'number', example: 55.5, description: 'Giá mong muốn (nghìn đồng)' },
+        triggerPrice: {
+          type: 'number',
+          example: 55.5,
+          description: 'Giá mong muốn (nghìn đồng)',
+        },
       },
     },
   })
@@ -90,18 +112,30 @@ export class ArenaController {
     @Body('quantity') quantity: number,
     @Body('triggerPrice') triggerPrice: number,
   ) {
-    return this.arenaService.placeLimitBuyOrder(user.sub, symbol, quantity, triggerPrice);
+    return this.arenaService.placeLimitBuyOrder(
+      user.sub,
+      symbol,
+      quantity,
+      triggerPrice,
+    );
   }
 
   @Post('orders/limit-sell')
-  @ApiOperation({ summary: 'Lệnh giới hạn BÁN (Limit Order) - chờ khớp khi giá ≥ triggerPrice' })
+  @ApiOperation({
+    summary:
+      'Lệnh giới hạn BÁN (Limit Order) - chờ khớp khi giá ≥ triggerPrice',
+  })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         symbol: { type: 'string', example: 'VCB' },
         quantity: { type: 'number', example: 100 },
-        triggerPrice: { type: 'number', example: 62.0, description: 'Giá mong muốn (nghìn đồng)' },
+        triggerPrice: {
+          type: 'number',
+          example: 62.0,
+          description: 'Giá mong muốn (nghìn đồng)',
+        },
       },
     },
   })
@@ -111,7 +145,12 @@ export class ArenaController {
     @Body('quantity') quantity: number,
     @Body('triggerPrice') triggerPrice: number,
   ) {
-    return this.arenaService.placeLimitSellOrder(user.sub, symbol, quantity, triggerPrice);
+    return this.arenaService.placeLimitSellOrder(
+      user.sub,
+      symbol,
+      quantity,
+      triggerPrice,
+    );
   }
 
   @Delete('orders/:id')
@@ -132,14 +171,23 @@ export class ArenaController {
   @ApiOperation({ summary: 'Lịch sử lệnh (tất cả hoặc lọc theo status)' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'status', required: false, description: 'PENDING, FILLED, CANCELLED, REJECTED' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'PENDING, FILLED, CANCELLED, REJECTED',
+  })
   getOrders(
     @CurrentUser() user: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: string,
   ) {
-    return this.arenaService.getOrders(user.sub, Number(page) || 1, Number(limit) || 20, status);
+    return this.arenaService.getOrders(
+      user.sub,
+      Number(page) || 1,
+      Number(limit) || 20,
+      status,
+    );
   }
 
   // ============ Portfolio ============
@@ -155,8 +203,17 @@ export class ArenaController {
   @Public()
   @Get('leaderboard')
   @ApiOperation({ summary: 'Bảng xếp hạng' })
-  @ApiQuery({ name: 'month', required: false, description: 'YYYY-MM', example: '2026-03' })
-  @ApiQuery({ name: 'metric', required: false, description: 'pnl, totalAssets, pnlPercent, winRate, totalOrders' })
+  @ApiQuery({
+    name: 'month',
+    required: false,
+    description: 'YYYY-MM',
+    example: '2026-03',
+  })
+  @ApiQuery({
+    name: 'metric',
+    required: false,
+    description: 'pnl, totalAssets, pnlPercent, winRate, totalOrders',
+  })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   getLeaderboard(
@@ -165,7 +222,12 @@ export class ArenaController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.leaderboardService.getLeaderboard(month, metric || 'pnl', Number(page) || 1, Number(limit) || 20);
+    return this.leaderboardService.getLeaderboard(
+      month,
+      metric || 'pnl',
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @Get('leaderboard/me')
@@ -212,7 +274,11 @@ export class WatchlistController {
       type: 'object',
       properties: {
         name: { type: 'string', example: 'Ngân hàng yêu thích' },
-        symbols: { type: 'array', items: { type: 'string' }, example: ['VCB', 'ACB', 'BID'] },
+        symbols: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['VCB', 'ACB', 'BID'],
+        },
       },
     },
   })
@@ -242,7 +308,12 @@ export class WatchlistController {
 
   @Post(':id/symbols')
   @ApiOperation({ summary: 'Thêm mã vào danh sách' })
-  @ApiBody({ schema: { type: 'object', properties: { symbol: { type: 'string', example: 'FPT' } } } })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { symbol: { type: 'string', example: 'FPT' } },
+    },
+  })
   addSymbol(
     @CurrentUser() user: any,
     @Param('id') id: string,

@@ -61,7 +61,10 @@ export class LeaderboardService {
     ranked.sort(sortFn);
 
     // Add rank
-    const withRank = ranked.map((item: any, index: number) => ({ rank: index + 1, ...item }));
+    const withRank = ranked.map((item: any, index: number) => ({
+      rank: index + 1,
+      ...item,
+    }));
 
     // Paginate
     const start = (page - 1) * limit;

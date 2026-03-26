@@ -11,7 +11,7 @@ export class ArenaService {
   constructor(
     private prisma: PrismaService,
     private tradingService: TradingService,
-  ) { }
+  ) {}
 
   private getCurrentMonthYear(): string {
     const now = new Date();
@@ -19,7 +19,9 @@ export class ArenaService {
   }
 
   private async getSettings() {
-    let settings = await this.prisma.arenaSettings.findUnique({ where: { id: 'default' } });
+    let settings = await this.prisma.arenaSettings.findUnique({
+      where: { id: 'default' },
+    });
     if (!settings) {
       settings = await this.prisma.arenaSettings.create({
         data: { id: 'default' },
@@ -42,7 +44,10 @@ export class ArenaService {
     });
 
     if (existing) {
-      return { message: 'Tài khoản đã được kích hoạt cho tháng này', data: existing };
+      return {
+        message: 'Tài khoản đã được kích hoạt cho tháng này',
+        data: existing,
+      };
     }
 
     const account = await this.prisma.virtualAccount.create({
@@ -69,7 +74,9 @@ export class ArenaService {
     });
 
     if (!account) {
-      throw new BadRequestException('Chưa kích hoạt đấu trường ảo. Vui lòng kích hoạt trước.');
+      throw new BadRequestException(
+        'Chưa kích hoạt đấu trường ảo. Vui lòng kích hoạt trước.',
+      );
     }
 
     const pendingOrders = await this.prisma.virtualOrder.count({
@@ -77,7 +84,8 @@ export class ArenaService {
     });
 
     const totalTrades = account.winTrades + account.lossTrades;
-    const winRate = totalTrades > 0 ? (account.winTrades / totalTrades) * 100 : 0;
+    const winRate =
+      totalTrades > 0 ? (account.winTrades / totalTrades) * 100 : 0;
     const pnl = Number(account.balance) - Number(account.initialBalance);
     const pnlPercent = (pnl / Number(account.initialBalance)) * 100;
 
@@ -101,7 +109,13 @@ export class ArenaService {
     const settings = await this.getSettings();
     const price = await this.getCurrentPrice(symbol);
 
-    return this.executeBuy(account, settings, symbol.toUpperCase(), quantity, price);
+    return this.executeBuy(
+      account,
+      settings,
+      symbol.toUpperCase(),
+      quantity,
+      price,
+    );
   }
 
   async placeSellOrder(userId: string, symbol: string, quantity: number) {
@@ -109,12 +123,23 @@ export class ArenaService {
     const settings = await this.getSettings();
     const price = await this.getCurrentPrice(symbol);
 
-    return this.executeSell(account, settings, symbol.toUpperCase(), quantity, price);
+    return this.executeSell(
+      account,
+      settings,
+      symbol.toUpperCase(),
+      quantity,
+      price,
+    );
   }
 
   // ============ Limit Order ============
 
-  async placeLimitBuyOrder(userId: string, symbol: string, quantity: number, triggerPrice: number) {
+  async placeLimitBuyOrder(
+    userId: string,
+    symbol: string,
+    quantity: number,
+    triggerPrice: number,
+  ) {
     const account = await this.getActiveAccount(userId);
     const settings = await this.getSettings();
 
@@ -124,7 +149,8 @@ export class ArenaService {
     }
 
     // Pre-check balance (ước tính theo trigger price)
-    const estimatedCost = triggerPrice * quantity * (1 + Number(settings.buyFeeRate));
+    const estimatedCost =
+      triggerPrice * quantity * (1 + Number(settings.buyFeeRate));
     if (Number(account.balance) < estimatedCost) {
       throw new BadRequestException(
         `Số dư không đủ (ước tính). Cần ~${this.formatVnd(estimatedCost)}, có ${this.formatVnd(Number(account.balance))}`,
@@ -157,7 +183,12 @@ export class ArenaService {
     };
   }
 
-  async placeLimitSellOrder(userId: string, symbol: string, quantity: number, triggerPrice: number) {
+  async placeLimitSellOrder(
+    userId: string,
+    symbol: string,
+    quantity: number,
+    triggerPrice: number,
+  ) {
     const account = await this.getActiveAccount(userId);
 
     if (!triggerPrice || triggerPrice <= 0) {
@@ -166,7 +197,12 @@ export class ArenaService {
 
     // Check portfolio
     const position = await this.prisma.virtualPortfolio.findUnique({
-      where: { accountId_symbol: { accountId: account.id, symbol: symbol.toUpperCase() } },
+      where: {
+        accountId_symbol: {
+          accountId: account.id,
+          symbol: symbol.toUpperCase(),
+        },
+      },
     });
 
     if (!position || position.quantity < quantity) {
@@ -216,7 +252,10 @@ export class ArenaService {
       data: { status: 'CANCELLED', note: 'Hủy bởi user' },
     });
 
-    return { message: `Đã hủy lệnh ${order.side} ${order.symbol}`, data: updated };
+    return {
+      message: `Đã hủy lệnh ${order.side} ${order.symbol}`,
+      data: updated,
+    };
   }
 
   /** Lấy danh sách lệnh chờ */
@@ -269,12 +308,28 @@ export class ArenaService {
 
         // Execute
         if (order.side === 'BUY') {
-          await this.executeBuy(order.account, settings, order.symbol, order.quantity, currentPrice, order.id);
+          await this.executeBuy(
+            order.account,
+            settings,
+            order.symbol,
+            order.quantity,
+            currentPrice,
+            order.id,
+          );
         } else {
-          await this.executeSell(order.account, settings, order.symbol, order.quantity, currentPrice, order.id);
+          await this.executeSell(
+            order.account,
+            settings,
+            order.symbol,
+            order.quantity,
+            currentPrice,
+            order.id,
+          );
         }
 
-        this.logger.log(`✅ LO khớp: ${order.side} ${order.quantity} ${order.symbol} @ ${currentPrice}`);
+        this.logger.log(
+          `✅ LO khớp: ${order.side} ${order.quantity} ${order.symbol} @ ${currentPrice}`,
+        );
       } catch (err: any) {
         this.logger.warn(`⚠ LO ${order.id} failed: ${err.message}`);
         // Reject order nếu không thể khớp
@@ -350,7 +405,10 @@ export class ArenaService {
       update: data,
       create: { id: 'default', ...data },
     });
-    return { message: 'Cập nhật cài đặt đấu trường thành công', data: settings };
+    return {
+      message: 'Cập nhật cài đặt đấu trường thành công',
+      data: settings,
+    };
   }
 
   async getSettings_() {
@@ -361,7 +419,12 @@ export class ArenaService {
   // ============ Execution Engine (shared by Market + Limit) ============
 
   private async executeBuy(
-    account: any, settings: any, symbol: string, quantity: number, price: number, existingOrderId?: string,
+    account: any,
+    settings: any,
+    symbol: string,
+    quantity: number,
+    price: number,
+    existingOrderId?: string,
   ) {
     const orderValue = price * quantity;
     const fee = orderValue * Number(settings.buyFeeRate);
@@ -380,7 +443,14 @@ export class ArenaService {
         // Fill existing limit order
         order = await tx.virtualOrder.update({
           where: { id: existingOrderId },
-          data: { price, fee, tax: 0, totalAmount: totalCost, status: 'FILLED', filledAt: new Date() },
+          data: {
+            price,
+            fee,
+            tax: 0,
+            totalAmount: totalCost,
+            status: 'FILLED',
+            filledAt: new Date(),
+          },
         });
       } else {
         order = await tx.virtualOrder.create({
@@ -418,11 +488,21 @@ export class ArenaService {
         const newTotalInvested = Number(existingPos.totalInvested) + orderValue;
         await tx.virtualPortfolio.update({
           where: { id: existingPos.id },
-          data: { quantity: newQty, avgBuyPrice: newTotalInvested / newQty, totalInvested: newTotalInvested },
+          data: {
+            quantity: newQty,
+            avgBuyPrice: newTotalInvested / newQty,
+            totalInvested: newTotalInvested,
+          },
         });
       } else {
         await tx.virtualPortfolio.create({
-          data: { accountId: account.id, symbol, quantity, avgBuyPrice: price, totalInvested: orderValue },
+          data: {
+            accountId: account.id,
+            symbol,
+            quantity,
+            avgBuyPrice: price,
+            totalInvested: orderValue,
+          },
         });
       }
 
@@ -436,7 +516,12 @@ export class ArenaService {
   }
 
   private async executeSell(
-    account: any, settings: any, symbol: string, quantity: number, price: number, existingOrderId?: string,
+    account: any,
+    settings: any,
+    symbol: string,
+    quantity: number,
+    price: number,
+    existingOrderId?: string,
   ) {
     const position = await this.prisma.virtualPortfolio.findUnique({
       where: { accountId_symbol: { accountId: account.id, symbol } },
@@ -462,7 +547,14 @@ export class ArenaService {
       if (existingOrderId) {
         order = await tx.virtualOrder.update({
           where: { id: existingOrderId },
-          data: { price, fee, tax, totalAmount: netAmount, status: 'FILLED', filledAt: new Date() },
+          data: {
+            price,
+            fee,
+            tax,
+            totalAmount: netAmount,
+            status: 'FILLED',
+            filledAt: new Date(),
+          },
         });
       } else {
         order = await tx.virtualOrder.create({
@@ -491,7 +583,10 @@ export class ArenaService {
       if (isWin) updateData.winTrades = { increment: 1 };
       else updateData.lossTrades = { increment: 1 };
 
-      await tx.virtualAccount.update({ where: { id: account.id }, data: updateData });
+      await tx.virtualAccount.update({
+        where: { id: account.id },
+        data: updateData,
+      });
 
       const remainQty = position.quantity - quantity;
       if (remainQty === 0) {
@@ -500,7 +595,10 @@ export class ArenaService {
         const soldPortion = quantity / position.quantity;
         await tx.virtualPortfolio.update({
           where: { id: position.id },
-          data: { quantity: remainQty, totalInvested: Number(position.totalInvested) * (1 - soldPortion) },
+          data: {
+            quantity: remainQty,
+            totalInvested: Number(position.totalInvested) * (1 - soldPortion),
+          },
         });
       }
 
@@ -528,10 +626,14 @@ export class ArenaService {
   }
 
   async getCurrentPrice(symbol: string): Promise<number> {
-    const result = await this.tradingService.getPriceBoard([symbol.toUpperCase()]);
+    const result = await this.tradingService.getPriceBoard([
+      symbol.toUpperCase(),
+    ]);
     const items: any[] = result?.data || [];
     if (!items.length || !items[0]?.closePrice) {
-      throw new BadRequestException(`Không lấy được giá hiện tại cho ${symbol.toUpperCase()}`);
+      throw new BadRequestException(
+        `Không lấy được giá hiện tại cho ${symbol.toUpperCase()}`,
+      );
     }
     return items[0].closePrice;
   }

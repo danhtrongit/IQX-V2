@@ -255,7 +255,8 @@ export class ChatService {
       where: { roomId_userId: { roomId, userId: targetUserId } },
     });
 
-    if (!membership) throw new NotFoundException(MESSAGES.CHAT.MEMBER_NOT_FOUND);
+    if (!membership)
+      throw new NotFoundException(MESSAGES.CHAT.MEMBER_NOT_FOUND);
 
     if (membership.role === ChatMemberRole.OWNER) {
       throw new ForbiddenException(MESSAGES.CHAT.CANNOT_REMOVE_OWNER);
@@ -386,18 +387,24 @@ export class ChatService {
       data: { isDeleted: true, content: null },
     });
 
-    return { message: MESSAGES.CHAT.MESSAGE_DELETED, data: { id: messageId, roomId: message.roomId } };
+    return {
+      message: MESSAGES.CHAT.MESSAGE_DELETED,
+      data: { id: messageId, roomId: message.roomId },
+    };
   }
 
-  async searchMessages(userId: string, keyword: string, roomId?: string, pagination?: PaginationDto) {
+  async searchMessages(
+    userId: string,
+    keyword: string,
+    roomId?: string,
+    pagination?: PaginationDto,
+  ) {
     const userRooms = await this.prisma.chatRoomMember.findMany({
       where: { userId },
       select: { roomId: true },
     });
 
-    const roomIds = roomId
-      ? [roomId]
-      : userRooms.map((m) => m.roomId);
+    const roomIds = roomId ? [roomId] : userRooms.map((m) => m.roomId);
 
     const where = {
       roomId: { in: roomIds },
