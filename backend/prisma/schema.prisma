@@ -1,0 +1,366 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  PREMIUM
+  ADMIN
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  password         String
+  fullName         String?   @map("full_name")
+  phone            String?
+  role             Role      @default(USER)
+  isActive         Boolean   @default(true) @map("is_active")
+  premiumExpiresAt DateTime? @map("premium_expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  refreshTokens    RefreshToken[]
+  subscriptions    Subscription[]
+  payments         Payment[]
+  virtualAccounts  VirtualAccount[]
+  watchlists       Watchlist[]
+  createdRooms     ChatRoom[]         @relation("ChatRoomCreator")
+  chatMemberships  ChatRoomMember[]
+  chatMessages     ChatMessage[]
+  messageReactions MessageReaction[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String             @map("user_id")
+  plan      SubscriptionPlan
+  status    SubscriptionStatus @default(ACTIVE)
+  startDate DateTime           @map("start_date")
+  endDate   DateTime           @map("end_date")
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                 String        @id @default(uuid())
+  userId             String        @map("user_id")
+  subscriptionId     String?       @map("subscription_id")
+  amount             Decimal       @db.Decimal(12, 2)
+  currency           String        @default("VND")
+  status             PaymentStatus @default(PENDING)
+  sepayOrderId       String?       @unique @map("sepay_order_id")
+  sepayTransactionId String?       @map("sepay_transaction_id")
+  invoiceNumber      String        @unique @map("invoice_number")
+  description        String?
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId])
+  @@index([invoiceNumber])
+  @@map("payments")
+}
+
+// ===================== Market Data =====================
+
+model Stock {
+  id          String   @id @default(uuid())
+  symbol      String   @unique
+  name        String
+  nameEn      String?  @map("name_en")
+  exchange    String   // HOSE, HNX, UPCOM
+  type        String   @default("stock")
+
+  // KBS sector
+  sectorCode  String?  @map("sector_code")
+  sectorName  String?  @map("sector_name")
+
+  // VCI ICB classification (4 levels)
+  icbCode1    String?  @map("icb_code_1")
+  icbCode2    String?  @map("icb_code_2")
+  icbCode3    String?  @map("icb_code_3")
+  icbCode4    String?  @map("icb_code_4")
+  icbName3    String?  @map("icb_name_3")
+  enIcbName3  String?  @map("en_icb_name_3")
+  comTypeCode String?  @map("com_type_code")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([exchange])
+  @@index([sectorCode])
+  @@index([icbCode3])
+  @@index([name])
+  @@map("stocks")
+}
+
+model Sector {
+  id   Int    @id @default(autoincrement())
+  code String @unique
+  name String
+
+  @@map("sectors")
+}
+
+// ===================== Arena Settings =====================
+
+model ArenaSettings {
+  id             String  @id @default("default")
+  buyFeeRate     Decimal @default(0.0015) @map("buy_fee_rate") @db.Decimal(8, 6)
+  sellFeeRate    Decimal @default(0.0015) @map("sell_fee_rate") @db.Decimal(8, 6)
+  sellTaxRate    Decimal @default(0.001) @map("sell_tax_rate") @db.Decimal(8, 6)
+  tPlusDays      Int     @default(0) @map("t_plus_days")
+  initialBalance Decimal @default(1000000000) @map("initial_balance") @db.Decimal(18, 2)
+  isActive       Boolean @default(true) @map("is_active")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("arena_settings")
+}
+
+// ===================== Virtual Trading =====================
+
+enum OrderSide {
+  BUY
+  SELL
+}
+
+enum OrderStatus {
+  PENDING
+  FILLED
+  CANCELLED
+  REJECTED
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+}
+
+model VirtualAccount {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  balance         Decimal  @db.Decimal(18, 2)
+  initialBalance  Decimal  @map("initial_balance") @db.Decimal(18, 2)
+  monthYear       String   @map("month_year")
+  isActive        Boolean  @default(true) @map("is_active")
+  totalBuyAmount  Decimal  @default(0) @map("total_buy_amount") @db.Decimal(18, 2)
+  totalSellAmount Decimal  @default(0) @map("total_sell_amount") @db.Decimal(18, 2)
+  totalFees       Decimal  @default(0) @map("total_fees") @db.Decimal(18, 2)
+  totalTax        Decimal  @default(0) @map("total_tax") @db.Decimal(18, 2)
+  winTrades       Int      @default(0) @map("win_trades")
+  lossTrades      Int      @default(0) @map("loss_trades")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio VirtualPortfolio[]
+  orders    VirtualOrder[]
+
+  @@unique([userId, monthYear])
+  @@index([monthYear])
+  @@map("virtual_accounts")
+}
+
+model VirtualPortfolio {
+  id            String   @id @default(uuid())
+  accountId     String   @map("account_id")
+  symbol        String
+  quantity      Int
+  avgBuyPrice   Decimal  @map("avg_buy_price") @db.Decimal(18, 2)
+  totalInvested Decimal  @map("total_invested") @db.Decimal(18, 2)
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  account VirtualAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, symbol])
+  @@map("virtual_portfolios")
+}
+
+model VirtualOrder {
+  id           String      @id @default(uuid())
+  accountId    String      @map("account_id")
+  symbol       String
+  side         OrderSide
+  orderType    OrderType   @default(MARKET) @map("order_type")
+  quantity     Int
+  price        Decimal     @db.Decimal(18, 2)
+  triggerPrice Decimal?    @map("trigger_price") @db.Decimal(18, 2)
+  fee          Decimal     @default(0) @db.Decimal(18, 2)
+  tax          Decimal     @default(0) @db.Decimal(18, 2)
+  totalAmount  Decimal     @map("total_amount") @db.Decimal(18, 2)
+  status       OrderStatus @default(FILLED)
+  filledAt     DateTime?   @map("filled_at")
+  expiresAt    DateTime?   @map("expires_at")
+  note         String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  account VirtualAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([symbol])
+  @@index([status])
+  @@index([createdAt])
+  @@map("virtual_orders")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  symbols   String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("watchlists")
+}
+
+// ===================== Community Chat =====================
+
+enum ChatRoomType {
+  DIRECT
+  GROUP
+  PUBLIC
+}
+
+enum ChatMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+model ChatRoom {
+  id          String       @id @default(uuid())
+  name        String?
+  description String?
+  type        ChatRoomType @default(GROUP)
+  avatar      String?
+  createdById String       @map("created_by_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  createdBy User             @relation("ChatRoomCreator", fields: [createdById], references: [id])
+  members   ChatRoomMember[]
+  messages  ChatMessage[]
+
+  @@index([type])
+  @@index([createdAt])
+  @@map("chat_rooms")
+}
+
+model ChatRoomMember {
+  id         String         @id @default(uuid())
+  roomId     String         @map("room_id")
+  userId     String         @map("user_id")
+  role       ChatMemberRole @default(MEMBER)
+  joinedAt   DateTime       @default(now()) @map("joined_at")
+  lastReadAt DateTime?      @map("last_read_at")
+  isMuted    Boolean        @default(false) @map("is_muted")
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@map("chat_room_members")
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  roomId    String      @map("room_id")
+  senderId  String      @map("sender_id")
+  content   String?
+  type      MessageType @default(TEXT)
+  fileUrl   String?     @map("file_url")
+  fileName  String?     @map("file_name")
+  fileSize  Int?        @map("file_size")
+  replyToId String?     @map("reply_to_id")
+  isEdited  Boolean     @default(false) @map("is_edited")
+  isDeleted Boolean     @default(false) @map("is_deleted")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  room      ChatRoom          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User              @relation(fields: [senderId], references: [id])
+  replyTo   ChatMessage?      @relation("MessageReply", fields: [replyToId], references: [id])
+  replies   ChatMessage[]     @relation("MessageReply")
+  reactions MessageReaction[]
+
+  @@index([roomId, createdAt])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String   @map("message_id")
+  userId    String   @map("user_id")
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("message_reactions")
+}
+
