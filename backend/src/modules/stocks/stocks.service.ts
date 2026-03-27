@@ -67,14 +67,20 @@ export class StocksService {
       this.logger.warn(`Cache get failed, proceeding without cache: ${error.message}`);
     }
 
-    const searchResults = await this.executeOptimizedSearch(
-      query,
-      exchange,
-      sectorCode,
-      icbCode,
-      page,
-      limit,
-    );
+    let searchResults;
+    try {
+      searchResults = await this.executeOptimizedSearch(
+        query,
+        exchange,
+        sectorCode,
+        icbCode,
+        page,
+        limit,
+      );
+    } catch (dbError) {
+      this.logger.error(`Search DB Error: ${dbError.message}`, dbError.stack);
+      throw dbError;
+    }
 
     const response = {
       message: MESSAGES.COMMON.SUCCESS,
