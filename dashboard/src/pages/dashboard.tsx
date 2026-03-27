@@ -10,8 +10,14 @@ import { SymbolProvider } from "@/contexts/symbol-context"
 import { SidebarProvider } from "@/contexts/sidebar-context"
 import { toast } from "sonner"
 import { Lightbulb } from "lucide-react"
+import { useSEO } from "@/hooks/use-seo"
 
 export default function DashboardPage() {
+  useSEO({
+    title: "IQX Dashboard - Toàn Cảnh Thị Trường",
+    description: "Nhận định diễn biến thị trường tỷ đô, VN-Index, dòng tiền và tin tức tác động đến thị trường chứng khoán Việt Nam.",
+    url: "https://beta.iqx.vn/dashboard",
+  });
   const handleActionClick = (id: string) => {
     if (id === "ai-insight") {
       toast("AI Phân tích chưa khả dụng", {

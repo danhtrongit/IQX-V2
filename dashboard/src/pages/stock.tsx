@@ -17,6 +17,7 @@ import { BarChart3, LineChart, Info, X, GripHorizontal } from "lucide-react"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { StockLogo } from "@/components/stock/stock-logo"
+import { useSEO } from "@/hooks/use-seo"
 
 type StockTab = "chart" | "overview" | "financials"
 
@@ -24,6 +25,12 @@ export default function StockPage() {
   const { symbol } = useParams<{ symbol: string }>()
   const ticker = symbol?.toUpperCase() || "VNINDEX"
   const navigate = useNavigate()
+
+  useSEO({
+    title: `Cổ phiếu ${ticker} - Biểu đồ, Tài chính & Phân Tích AI | IQX`,
+    description: `Xem đa chiều cổ phiếu ${ticker}: Biểu đồ kỹ thuật thời gian thực, Dữ liệu tài chính, và Nhận định độc quyền từ hệ thống AI 6 lớp của IQX.`,
+    url: `https://beta.iqx.vn/co-phieu/${ticker}`,
+  })
   const [activeTab, setActiveTab] = useState<StockTab>("chart")
   const [isAiInsightOpen, setIsAiInsightOpen] = useState(false)
   const dragControls = useDragControls()

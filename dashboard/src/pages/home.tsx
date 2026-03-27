@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useSEO } from '@/hooks/use-seo'
 import HomeHeader from '@/components/home/HomeHeader'
 import HeroSection from '@/components/home/HeroSection'
 import CoreValuesSection from '@/components/home/CoreValuesSection'
@@ -16,6 +17,12 @@ export default function HomePage() {
             document.body.style.overflow = 'auto';
         };
     }, []);
+
+    useSEO({
+        title: 'IQX - Trợ lý AI Phân Tích Chứng Khoán Thời Gian Thực',
+        description: 'Tối ưu hóa lợi nhuận với AI của IQX. Phân tích xu hướng, thanh khoản, dòng tiền lớn, hành vi chỉ trong một nhịp chạm.',
+        url: 'https://beta.iqx.vn/',
+    });
 
     return (
         <div className="fullpage-container">
