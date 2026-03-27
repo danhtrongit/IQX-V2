@@ -4,17 +4,14 @@ import {
   InsightDataCollector,
   InsightRawData,
 } from './insight-data-collector.service';
-import { LAYER_PROMPTS } from './prompts.constant';
+import { COMBINED_PROMPT } from './prompts.constant';
 import { MESSAGES } from '../../common/constants/messages.constant';
 import {
   RedisCacheService,
   CacheType,
 } from '../../common/modules/redis-cache/redis-cache.service';
 
-interface LayerResult {
-  layer: string;
-  output: any; // JSON object or string
-}
+
 
 @Injectable()
 export class AiInsightService {
@@ -47,7 +44,7 @@ export class AiInsightService {
       this.logger.warn(`Cache get failed for AI insight: ${error.message}`);
     }
 
-    this.logger.log(`Starting 6-layer analysis for ${upper}`);
+    this.logger.log(`Starting single-request 6-layer analysis for ${upper}`);
 
     if (!this.apiKey || this.apiKey === 'your_v98dev_api_key_here') {
       return { message: 'AI_API_KEY chưa được cấu hình.', data: null };
@@ -58,19 +55,25 @@ export class AiInsightService {
       `Data collected: OHLCV=${data.ohlcv.length}, SD=${data.supplyDemand.length}, FF=${data.foreignFlow.length}, PF=${data.proprietaryFlow.length}, Insider=${data.insiderTransactions.length}, News=${data.news.length}`,
     );
 
-    // Run L1-L5 in parallel
-    const [l1, l2, l3, l4, l5] = await Promise.all([
-      this.runLayer('L1', data),
-      this.runLayer('L2', data),
-      this.runLayer('L3', data),
-      this.runLayer('L4', data),
-      this.runLayer('L5', data),
-    ]);
+    // Single AI call for all 6 layers
+    let allLayers: Record<string, any> = {};
+    try {
+      const userInput = this.buildCombinedInput(data);
+      const raw = await this.chatCompletion(COMBINED_PROMPT, userInput);
+      allLayers = this.tryParseJson(raw);
+      this.logger.log(`AI response parsed successfully for ${upper}`);
+    } catch (err: any) {
+      this.logger.error(`AI analysis failed: ${err.message}`);
+      allLayers = {
+        L1: { error: err.message },
+        L2: { error: err.message },
+        L3: { error: err.message },
+        L4: { error: err.message },
+        L5: { error: err.message },
+        L6: { error: err.message },
+      };
+    }
 
-    // Run L6 with L1-L5 outputs
-    const l6 = await this.runL6(l1, l2, l3, l4, l5);
-
-    // Build rawInput for frontend detail panels
     const rawInput = this.buildRawInputs(data);
 
     const response = {
@@ -79,12 +82,12 @@ export class AiInsightService {
         symbol: upper,
         timestamp: new Date().toISOString(),
         layers: {
-          trend: { label: 'Xu hướng & Hỗ trợ/Kháng cự', output: l1.output },
-          liquidity: { label: 'Thanh khoản & Cung–cầu', output: l2.output },
-          moneyFlow: { label: 'Dòng tiền lớn', output: l3.output },
-          insider: { label: 'Sự kiện nội bộ', output: l4.output },
-          news: { label: 'Tin tức doanh nghiệp', output: l5.output },
-          decision: { label: 'Tổng hợp & Hành động', output: l6.output },
+          trend: { label: 'Xu hướng & Hỗ trợ/Kháng cự', output: allLayers.L1 || {} },
+          liquidity: { label: 'Thanh khoản & Cung–cầu', output: allLayers.L2 || {} },
+          moneyFlow: { label: 'Dòng tiền lớn', output: allLayers.L3 || {} },
+          insider: { label: 'Sự kiện nội bộ', output: allLayers.L4 || {} },
+          news: { label: 'Tin tức doanh nghiệp', output: allLayers.L5 || {} },
+          decision: { label: 'Tổng hợp & Hành động', output: allLayers.L6 || {} },
         },
         rawInput,
         dataSummary: {
@@ -128,7 +131,7 @@ export class AiInsightService {
           { role: 'user', content: userMessage },
         ],
         temperature: 0.3,
-        max_tokens: 4000,
+        max_tokens: 8000,
       }),
     });
 
@@ -143,107 +146,25 @@ export class AiInsightService {
     return content.trim();
   }
 
-  // ── Layer Runners ──
+  // ── Build Combined Input (all data for single request) ──
 
-  private async runLayer(
-    layer: keyof typeof LAYER_PROMPTS,
-    data: InsightRawData,
-  ): Promise<LayerResult> {
-    try {
-      const systemPrompt = LAYER_PROMPTS[layer];
-      const userInput = this.buildUserInput(layer, data);
-      const raw = await this.chatCompletion(systemPrompt, userInput);
-      const output = this.tryParseJson(raw);
-      return { layer, output };
-    } catch (err: any) {
-      this.logger.error(`${layer} failed: ${err.message}`);
-      return { layer, output: { error: err.message } };
-    }
-  }
+  private buildCombinedInput(d: InsightRawData): string {
+    const parts: string[] = [];
+    parts.push(`Mã: ${d.symbol}`);
 
-  private async runL6(
-    l1: LayerResult,
-    l2: LayerResult,
-    l3: LayerResult,
-    l4: LayerResult,
-    l5: LayerResult,
-  ): Promise<LayerResult> {
-    try {
-      const systemPrompt = LAYER_PROMPTS.L6;
-      const userInput = `Dưới đây là output JSON từ L1-L5. Hãy tổng hợp.
-
---- L1 (Xu hướng) ---
-${JSON.stringify(l1.output)}
-
---- L2 (Thanh khoản) ---
-${JSON.stringify(l2.output)}
-
---- L3 (Dòng tiền) ---
-${JSON.stringify(l3.output)}
-
---- L4 (Nội bộ) ---
-${JSON.stringify(l4.output)}
-
---- L5 (Tin tức) ---
-${JSON.stringify(l5.output)}`;
-
-      const raw = await this.chatCompletion(systemPrompt, userInput);
-      const output = this.tryParseJson(raw);
-      return { layer: 'L6', output };
-    } catch (err: any) {
-      this.logger.error(`L6 failed: ${err.message}`);
-      return { layer: 'L6', output: { error: err.message } };
-    }
-  }
-
-  // ── Build User Input ──
-
-  private buildUserInput(layer: string, data: InsightRawData): string {
-    switch (layer) {
-      case 'L1':
-        return this.buildL1Input(data);
-      case 'L2':
-        return this.buildL2Input(data);
-      case 'L3':
-        return this.buildL3Input(data);
-      case 'L4':
-        return this.buildL4Input(data);
-      case 'L5':
-        return this.buildL5Input(data);
-      default:
-        return '';
-    }
-  }
-
-  private buildL1Input(d: InsightRawData): string {
+    // L1 data — OHLCV & Precomputed
     const last10 = d.ohlcv.slice(-10);
     const last20 = d.ohlcv.slice(-20);
-    const ma10 = last10.length
-      ? last10.reduce((s, r) => s + r.close, 0) / last10.length
-      : 0;
-    const ma20 = last20.length
-      ? last20.reduce((s, r) => s + r.close, 0) / last20.length
-      : 0;
-    const volMa10 = last10.length
-      ? last10.reduce((s, r) => s + r.volume, 0) / last10.length
-      : 0;
-    const volMa20 = last20.length
-      ? last20.reduce((s, r) => s + r.volume, 0) / last20.length
-      : 0;
-
-    // MA20 slope (vs 5 sessions ago)
+    const ma10 = last10.length ? last10.reduce((s, r) => s + r.close, 0) / last10.length : 0;
+    const ma20 = last20.length ? last20.reduce((s, r) => s + r.close, 0) / last20.length : 0;
+    const volMa10 = last10.length ? last10.reduce((s, r) => s + r.volume, 0) / last10.length : 0;
+    const volMa20 = last20.length ? last20.reduce((s, r) => s + r.volume, 0) / last20.length : 0;
     const prev5 = d.ohlcv.slice(-25, -20);
-    const ma20_5ago =
-      prev5.length >= 5
-        ? d.ohlcv
-            .slice(-25)
-            .slice(0, 20)
-            .reduce((s, r) => s + r.close, 0) / 20
-        : ma20;
+    const ma20_5ago = prev5.length >= 5
+      ? d.ohlcv.slice(-25).slice(0, 20).reduce((s, r) => s + r.close, 0) / 20
+      : ma20;
     const slopePct = ma20 ? ((ma20 - ma20_5ago) / ma20_5ago) * 100 : 0;
-    const ma20Slope =
-      slopePct >= 0.3 ? 'đi lên' : slopePct <= -0.3 ? 'đi xuống' : 'phẳng';
-
+    const ma20Slope = slopePct >= 0.3 ? 'đi lên' : slopePct <= -0.3 ? 'đi xuống' : 'phẳng';
     const latestClose = d.ohlcv.length ? d.ohlcv[d.ohlcv.length - 1].close : 0;
     const priceVsMa20 = ma20 ? ((latestClose - ma20) / ma20) * 100 : 0;
     const nearMa20 = Math.abs(priceVsMa20) <= 1.5;
@@ -252,148 +173,70 @@ ${JSON.stringify(l5.output)}`;
       ? `Giá hiện tại: ${d.realtime.price}, Volume: ${d.realtime.volume}`
       : `Giá đóng cửa gần nhất: ${latestClose.toFixed(2)}`;
 
-    const ohlcvStr = d.ohlcv
-      .map(
-        (r) =>
-          `${r.date}: O=${r.open} H=${r.high} L=${r.low} C=${r.close} V=${r.volume}`,
-      )
-      .join('\n');
+    parts.push(`\n## DỮ LIỆU CHO L1 (Xu hướng)`);
+    parts.push(realtimeStr);
+    parts.push(`MA10: ${ma10.toFixed(2)}, MA20: ${ma20.toFixed(2)}`);
+    parts.push(`VolMA10: ${Math.round(volMa10)}, VolMA20: ${Math.round(volMa20)}`);
+    parts.push(`Độ dốc MA20: ${ma20Slope} (${slopePct.toFixed(2)}%)`);
+    parts.push(`Khoảng cách giá-MA20: ${priceVsMa20.toFixed(2)}%`);
+    parts.push(`Giá quanh MA20: ${nearMa20 ? 'Có' : 'Không'}`);
+    const ohlcvStr = d.ohlcv.slice(-10).map(r => `${r.date}: O=${r.open} H=${r.high} L=${r.low} C=${r.close} V=${r.volume}`).join('\n');
+    parts.push(`OHLCV 10 phiên gần nhất:\n${ohlcvStr || 'Không có'}`);
 
-    return `Mã: ${d.symbol}
+    // L2 data — Supply/Demand
+    parts.push(`\n## DỮ LIỆU CHO L2 (Thanh khoản)`);
+    if (d.supplyDemand.length) {
+      const latest = d.supplyDemand[0];
+      parts.push(`Phiên gần nhất (${latest.date}): KL chưa khớp Mua=${latest.buyUnmatchedVolume}, Bán=${latest.sellUnmatchedVolume}, Lệnh Mua=${latest.buyTradeCount}, Bán=${latest.sellTradeCount}, Volume khớp=${latest.totalVolume}`);
+      parts.push(`TB30: Volume khớp=${Math.round(this.avg(d.supplyDemand, 'totalVolume'))}`);
+    } else {
+      parts.push('Không có dữ liệu cung cầu.');
+    }
 
-## PRECOMPUTED
-${realtimeStr}
-MA10: ${ma10.toFixed(2)}, MA20: ${ma20.toFixed(2)}
-VolMA10: ${Math.round(volMa10)}, VolMA20: ${Math.round(volMa20)}
-Độ dốc MA20: ${ma20Slope} (${slopePct.toFixed(2)}%)
-Khoảng cách giá-MA20: ${priceVsMa20.toFixed(2)}%
-Giá quanh MA20: ${nearMa20 ? 'Có' : 'Không'}
+    // L3 data — Money Flow
+    parts.push(`\n## DỮ LIỆU CHO L3 (Dòng tiền)`);
+    const priceChange = d.ohlcv.length >= 5
+      ? ((d.ohlcv[d.ohlcv.length - 1].close - d.ohlcv[d.ohlcv.length - 5].close) / d.ohlcv[d.ohlcv.length - 5].close * 100).toFixed(2)
+      : '0';
+    parts.push(`Hướng giá 5 phiên: ${priceChange}%`);
+    const ffSummary = this.flowSummary(d.foreignFlow, 'Nước ngoài');
+    const pfSummary = this.flowSummary(d.proprietaryFlow, 'Tự doanh');
+    parts.push(ffSummary);
+    parts.push(pfSummary);
 
-## OHLCV 30 phiên
-${ohlcvStr || 'Không có'}
+    // L4 data — Insider
+    parts.push(`\n## DỮ LIỆU CHO L4 (Nội bộ)`);
+    if (d.insiderTransactions.length) {
+      const buys = d.insiderTransactions.filter(r => r.action?.includes('Mua') || r.action?.includes('mua'));
+      const sells = d.insiderTransactions.filter(r => r.action?.includes('Bán') || r.action?.includes('bán'));
+      parts.push(`Tổng: ${d.insiderTransactions.length} thông báo (Mua: ${buys.length}, Bán: ${sells.length})`);
+      const recent = d.insiderTransactions.slice(0, 5).map(r => `${r.action} | KL=${r.shareExecuted || r.shareRegistered} | ${r.startDate?.split('T')[0] || ''}`).join('\n');
+      parts.push(`5 gần nhất:\n${recent}`);
+    } else {
+      parts.push('Không có GD nội bộ.');
+    }
 
-Phân tích theo quy tắc, trả JSON.`;
+    // L5 data — News
+    parts.push(`\n## DỮ LIỆU CHO L5 (Tin tức)`);
+    if (d.tickerScore) {
+      parts.push(`Điểm AI: ${d.tickerScore.score}/10, Tích cực=${d.tickerScore.countPositive}, Tiêu cực=${d.tickerScore.countNegative}`);
+    }
+    const newsStr = d.news.map((n: any, i: number) => `${i + 1}. ${n.title} (${n.sourceName || ''}, ${n.updatedAt?.split(' ')[0] || ''})`).join('\n');
+    parts.push(`Tin tức (${d.news.length} tin):\n${newsStr || 'Không có'}`);
+
+    parts.push(`\nPhân tích tất cả 6 lớp, trả 1 JSON duy nhất theo format đã yêu cầu.`);
+    return parts.join('\n');
   }
 
-  private buildL2Input(d: InsightRawData): string {
-    if (!d.supplyDemand.length)
-      return `Mã: ${d.symbol}\nKhông có dữ liệu cung cầu.\nTrả JSON với giá trị "Chưa đủ dữ liệu".`;
-
-    const latest = d.supplyDemand[0];
-    const avg = (key: string) => this.avg(d.supplyDemand, key);
-
-    return `Mã: ${d.symbol}
-
-Phiên gần nhất (${latest.date}):
-- KL chưa khớp: Mua=${latest.buyUnmatchedVolume}, Bán=${latest.sellUnmatchedVolume}
-- Số lệnh: Mua=${latest.buyTradeCount}, Bán=${latest.sellTradeCount}
-- KL đặt: Mua=${latest.buyTradeVolume}, Bán=${latest.sellTradeVolume}
-- Volume khớp: ${latest.totalVolume}
-
-TB30: KL chưa khớp Mua=${Math.round(avg('buyUnmatchedVolume'))}, Bán=${Math.round(avg('sellUnmatchedVolume'))}
-TB30: Volume khớp=${Math.round(avg('totalVolume'))}
-
-Phân tích, trả JSON.`;
+  private flowSummary(arr: any[], label: string): string {
+    if (!arr.length) return `${label}: Không có dữ liệu`;
+    const buyDays = arr.filter(r => (r.matchNetVolume ?? r.totalNetVolume ?? 0) > 0).length;
+    const totalNet = arr.reduce((s, r) => s + (r.totalNetVolume ?? r.matchNetVolume ?? 0), 0);
+    const detail = arr.slice(0, 5).map(r => `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`).join(', ');
+    return `${label}: ${buyDays}/${arr.length} phiên mua ròng, tổng ròng=${totalNet > 0 ? '+' : ''}${totalNet}. Gần nhất: ${detail}`;  
   }
 
-  private buildL3Input(d: InsightRawData): string {
-    const summary = (arr: any[], label: string) => {
-      if (!arr.length) return `${label}: Không có dữ liệu`;
-      const buyDays = arr.filter(
-        (r) => (r.matchNetVolume ?? r.totalNetVolume ?? 0) > 0,
-      ).length;
-      const totalNet = arr.reduce(
-        (s, r) => s + (r.totalNetVolume ?? r.matchNetVolume ?? 0),
-        0,
-      );
-      return `${label}: ${buyDays}/${arr.length} phiên mua ròng, tổng ròng=${totalNet > 0 ? '+' : ''}${totalNet}`;
-    };
 
-    const priceChange =
-      d.ohlcv.length >= 5
-        ? (
-            ((d.ohlcv[d.ohlcv.length - 1].close -
-              d.ohlcv[d.ohlcv.length - 5].close) /
-              d.ohlcv[d.ohlcv.length - 5].close) *
-            100
-          ).toFixed(2)
-        : '0';
-
-    const ffDetail = d.foreignFlow
-      .slice(0, 10)
-      .map(
-        (r) => `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`,
-      )
-      .join('\n');
-
-    const pfDetail = d.proprietaryFlow
-      .slice(0, 10)
-      .map(
-        (r) => `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`,
-      )
-      .join('\n');
-
-    return `Mã: ${d.symbol}
-Hướng giá 5 phiên: ${priceChange}%
-
-${summary(d.foreignFlow, 'Nước ngoài')}
-10 phiên gần nhất:
-${ffDetail || 'Không có'}
-
-${summary(d.proprietaryFlow, 'Tự doanh')}
-10 phiên gần nhất:
-${pfDetail || 'Không có'}
-
-Phân tích, trả JSON.`;
-  }
-
-  private buildL4Input(d: InsightRawData): string {
-    if (!d.insiderTransactions.length)
-      return `Mã: ${d.symbol}\nKhông có GD nội bộ.\nTrả JSON.`;
-
-    const buys = d.insiderTransactions.filter(
-      (r) => r.action?.includes('Mua') || r.action?.includes('mua'),
-    );
-    const sells = d.insiderTransactions.filter(
-      (r) => r.action?.includes('Bán') || r.action?.includes('bán'),
-    );
-
-    const recent5 = d.insiderTransactions
-      .slice(0, 5)
-      .map(
-        (r) =>
-          `${r.action} | KL=${r.shareExecuted || r.shareRegistered} | ${r.startDate?.split('T')[0] || ''}`,
-      )
-      .join('\n');
-
-    return `Mã: ${d.symbol}
-Tổng: ${d.insiderTransactions.length} thông báo (Mua: ${buys.length}, Bán: ${sells.length})
-5 gần nhất:
-${recent5}
-
-Phân tích, trả JSON.`;
-  }
-
-  private buildL5Input(d: InsightRawData): string {
-    const newsStr = d.news
-      .map(
-        (n: any, i: number) =>
-          `${i + 1}. ${n.title} (${n.sourceName || ''}, ${n.updatedAt?.split(' ')[0] || ''})`,
-      )
-      .join('\n');
-
-    const scoreStr = d.tickerScore
-      ? `Điểm AI: ${d.tickerScore.score}/10, Tích cực=${d.tickerScore.countPositive}, Tiêu cực=${d.tickerScore.countNegative}`
-      : '';
-
-    return `Mã: ${d.symbol}
-${scoreStr}
-
-Tin tức (${d.news.length} tin):
-${newsStr || 'Không có'}
-
-Tóm tắt từng tin, trả JSON.`;
-  }
 
   // ── Build Raw Input for Frontend ──
 
