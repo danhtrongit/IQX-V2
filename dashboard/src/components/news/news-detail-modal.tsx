@@ -1,5 +1,4 @@
-import { useState } from "react"
-import { Loader2, X, ExternalLink, Clock, Building2 } from "lucide-react"
+import { Loader2, ExternalLink, Clock, Building2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -7,7 +6,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { useNewsArticle } from "@/hooks/use-news"
