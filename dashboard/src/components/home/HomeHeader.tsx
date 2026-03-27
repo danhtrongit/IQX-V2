@@ -3,13 +3,12 @@ import { Menu, X } from 'lucide-react';
 import { Link } from 'react-router';
 
 const navLinks = [
-    { label: 'Tính năng', href: '#features' },
-    { label: 'AI Insight', href: '#insight' },
+    { label: 'Trang chủ', href: '#hero' },
     { label: 'Giá trị', href: '#core-values' },
+    { label: 'Tổng quan', href: '#insight' },
     { label: 'Bảng giá', href: '#pricing' },
-    { label: 'Agents', href: '#agents' },
-    { label: 'Phân tích', href: '#analysis' },
     { label: 'Liên hệ', href: '#contact' },
+    { label: 'Hỗ trợ', href: '#faq' },
 ];
 
 export default function HomeHeader() {

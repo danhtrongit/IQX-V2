@@ -50,8 +50,13 @@ export default function HomeFooter() {
                             Sản phẩm
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {['Tính năng', 'AI Insight', 'Bảng giá', 'Agents'].map((link) => (
-                                <a key={link} href="#" style={{
+                            {[
+                                { name: 'Trang chủ', href: '#hero' },
+                                { name: 'Tổng quan', href: '#insight' },
+                                { name: 'Giá trị cốt lõi', href: '#core-values' },
+                                { name: 'Bảng giá', href: '#pricing' }
+                            ].map((link) => (
+                                <a key={link.name} href={link.href} style={{
                                     color: 'rgba(255,255,255,0.4)',
                                     textDecoration: 'none',
                                     fontSize: '14px',
@@ -60,7 +65,7 @@ export default function HomeFooter() {
                                     onMouseEnter={(e) => { e.currentTarget.style.color = '#00A8E8'; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
                                 >
-                                    {link}
+                                    {link.name}
                                 </a>
                             ))}
                         </div>
