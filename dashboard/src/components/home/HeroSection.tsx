@@ -143,11 +143,11 @@ export default function HeroSection() {
             <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }} />
             <div style={{ position: 'absolute', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,168,232,0.2) 0%, transparent 70%)', filter: 'blur(60px)', zIndex: 2, left: '15%', top: '50%', transform: 'translate(-50%,-50%)' }} />
 
-            <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', maxWidth: 1300, margin: '0 auto', padding: '0 40px', display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 60, alignItems: 'center' }} className="hero-grid">
+            <div style={{ position: 'relative', zIndex: 10, width: '100%', height: '100%', maxWidth: 1300, margin: '0 auto', padding: '60px 40px 0', boxSizing: 'border-box', display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 40, alignItems: 'center' }} className="hero-grid">
 
                 {/* LEFT — Text + Auth */}
                 <div>
-                    <div className="animate-fade-in-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 100, padding: '7px 18px', marginBottom: 28 }}>
+                    <div className="animate-fade-in-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 100, padding: '7px 18px', marginBottom: 20 }}>
                         <span style={{ background: '#00A8E8', color: '#0a0a0a', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, textTransform: 'uppercase', letterSpacing: 0.5 }}>Mới</span>
                         <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: 500 }}>AI thế hệ mới</span>
                     </div>
@@ -156,7 +156,7 @@ export default function HeroSection() {
                         AI thế hệ mới<br />Phân tích chứng khoán toàn diện
                     </h1>
 
-                    <p className="animate-fade-in-up animation-delay-400" style={{ fontSize: 'clamp(14px, 1.3vw, 17px)', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, maxWidth: 480, marginBottom: 32 }}>
+                    <p className="animate-fade-in-up animation-delay-400" style={{ fontSize: 'clamp(14px, 1.3vw, 17px)', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, maxWidth: 480, marginBottom: 24 }}>
                         Dữ liệu đa nguồn bảo chứng độ tin cậy – AI dựa trên dữ liệu để phân tích đa chiều và gợi ý hành động.
                     </p>
 

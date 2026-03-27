@@ -2,11 +2,11 @@ import { Mail, MessageCircle, MapPin, Phone } from 'lucide-react';
 
 export default function ContactSection() {
     return (
-        <section id="contact" style={{ position: 'relative', padding: '120px 40px', background: '#000', overflow: 'hidden' }}>
+        <section id="contact" style={{ position: 'relative', padding: '60px 40px', background: '#000', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '-150px', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '300px', background: 'radial-gradient(ellipse, rgba(0, 168, 232, 0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
             <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-                <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h2 style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 700, color: '#fff', marginBottom: '16px', letterSpacing: '-0.5px' }}>
                         Liên hệ với chúng tôi
                     </h2>

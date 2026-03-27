@@ -45,9 +45,9 @@ const plans = [
 
 export default function PricingSection() {
     return (
-        <section id="pricing" style={{ position: 'relative', padding: '120px 40px', background: '#000' }}>
+        <section id="pricing" style={{ position: 'relative', padding: '60px 40px', background: '#000' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <h2 style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 700, color: '#fff', marginBottom: '16px', letterSpacing: '-0.5px' }}>
                         Đầu tư thông minh,
                         <br />chi phí hợp lý
@@ -63,7 +63,7 @@ export default function PricingSection() {
                         <div key={i} style={{
                             background: plan.popular ? 'rgba(0, 168, 232, 0.04)' : 'rgba(255,255,255,0.02)',
                             border: `1px solid ${plan.popular ? 'rgba(0, 168, 232, 0.25)' : 'rgba(255,255,255,0.08)'}`,
-                            borderRadius: '20px', padding: '36px 28px', position: 'relative', transition: 'all 0.3s ease',
+                            borderRadius: '20px', padding: '24px 20px', position: 'relative', transition: 'all 0.3s ease',
                         }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-6px)';
@@ -100,13 +100,13 @@ export default function PricingSection() {
                             </p>
 
                             <a href="#" style={{
-                                display: 'block', textAlign: 'center', padding: '14px', borderRadius: '10px', fontWeight: 600, fontSize: '15px', textDecoration: 'none', marginBottom: '24px', transition: 'all 0.2s ease',
+                                display: 'block', textAlign: 'center', padding: '12px', borderRadius: '10px', fontWeight: 600, fontSize: '15px', textDecoration: 'none', marginBottom: '16px', transition: 'all 0.2s ease',
                                 background: plan.popular ? '#00A8E8' : 'transparent',
                                 color: plan.popular ? '#0a0a0a' : '#fff',
                                 border: plan.popular ? 'none' : '1px solid rgba(255,255,255,0.2)',
                             }}>Chọn gói này</a>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                                 {features.map((f) => (
                                     <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                                         <Check size={16} color={plan.popular ? '#00A8E8' : 'rgba(255,255,255,0.2)'} style={{ flexShrink: 0, marginTop: '2px' }} />

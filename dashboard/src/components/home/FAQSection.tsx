@@ -32,12 +32,12 @@ export default function FAQSection() {
             id="faq"
             style={{
                 position: 'relative',
-                padding: '120px 40px',
+                padding: '60px 40px',
                 background: '#000',
             }}
         >
             <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h2 style={{
                         fontSize: 'clamp(28px, 4vw, 40px)',
                         fontWeight: 700,

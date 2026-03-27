@@ -7,7 +7,7 @@ export default function InsightSection() {
             id="insight"
             style={{
                 position: 'relative',
-                padding: '120px 40px',
+                padding: '60px 40px',
                 background: '#000',
                 overflow: 'hidden',
             }}
@@ -24,12 +24,12 @@ export default function InsightSection() {
             }} />
 
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                     <h2 style={{
                         fontSize: 'clamp(32px, 4vw, 52px)',
                         fontWeight: 700,
                         color: '#00A8E8',
-                        marginBottom: '20px',
+                        marginBottom: '10px',
                         fontStyle: 'italic',
                         letterSpacing: '-0.5px',
                     }}>
@@ -49,7 +49,7 @@ export default function InsightSection() {
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
-                    gap: '60px',
+                    gap: '40px',
                     alignItems: 'center',
                 }} className="insight-grid">
                     <div style={{

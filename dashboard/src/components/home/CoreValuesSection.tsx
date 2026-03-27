@@ -25,11 +25,11 @@ const coreValues = [
 
 export default function CoreValuesSection() {
     return (
-        <section id="core-values" style={{ position: 'relative', padding: '120px 40px', background: '#000', overflow: 'hidden' }}>
+        <section id="core-values" style={{ position: 'relative', padding: '60px 40px', background: '#000', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', bottom: '-100px', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '300px', background: 'radial-gradient(ellipse, rgba(0, 168, 232, 0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
             <div style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-                <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 700, marginBottom: '20px', letterSpacing: '-0.5px' }}>
                         <span style={{ background: 'linear-gradient(135deg, #00A8E8 0%, #0081B7 50%, #006994 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>ARIX AI</span>
                         <span style={{ color: '#fff' }}> - Giá trị cốt lõi</span>
