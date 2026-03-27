@@ -38,14 +38,19 @@ Quy tắc HỖ TRỢ/KHÁNG CỰ:
 - 5-bar pivot swing. Zone: giá ±0.8%. VolumeTier: Cao/Vừa.
 - Score = 2×TestCount + VolumeTier. S1/R1 = mốc score cao nhất.
 
-OUTPUT JSON (chỉ trả JSON):
+OUTPUT NGOÀI
+Xu hướng: Tăng/Giảm/Đi ngang
+Trạng thái: "Mạnh/Giằng co/Yếu
+Hỗ trợ: S1
+Kháng cự R1
+
+OUTPUT JSON (chỉ trả JSON): 
 {
-  "trend": "Tăng/Giảm/Đi ngang + mô tả 1 câu",
-  "state": "Mạnh/Giằng co/Yếu + mô tả 1 câu",
-  "mainLevel": "Mốc chính hiện tại",
-  "support": "Hỗ trợ S1 + mức mạnh/yếu",
-  "resistance": "Kháng cự R1 + mức mạnh/yếu",
-  "note": "Ghi chú nếu có"
+  "Xu hướng": "Tăng/Giảm/Đi ngang + mô tả 1 câu",
+  "Trạng thái": "Mạnh/Giằng co/Yếu + mô tả 1 câu",
+  "Hỗ trợ": "S1 + mức mạnh/yếu",
+  "Kháng cự": "R1 + mức mạnh/yếu",
+  "Ghi chú": "Ghi chú nếu có"
 }`,
 
   L2: `${SYSTEM_PROMPT}
@@ -55,11 +60,14 @@ LỚP 2 — THANH KHOẢN & CUNG–CẦU
 Nhãn: so sánh với TB 30 phiên: cao (≥1.3×), bình thường (0.8-1.3×), thấp (<0.8×).
 Kịch bản: Kẹt lệnh / Quan tâm chưa thành GD / Thanh khoản yếu / Cơ hội vào/ra thuận lợi / Trung tính.
 
+OUTPUT NGOÀI:
+Thanh khoản: cải thiện/bình thường/suy yếu
+
 OUTPUT JSON (chỉ trả JSON):
 {
-  "liquidity": "cải thiện/bình thường/suy yếu + 1 câu diễn giải",
-  "supplyDemand": "kịch bản phù hợp + 1 câu",
-  "impact": "tác động khi vào/ra vị thế"
+  "Thanh khoản": "cải thiện/bình thường/suy yếu + 1 câu diễn giải",
+  "Cung - Cầu": "kịch bản phù hợp + 1 câu",
+  "Tác động": "tác động khi vào/ra vị thế"
 }`,
 
   L3: `${SYSTEM_PROMPT}
@@ -71,11 +79,15 @@ Phân loại: Mua ròng (≥60% phiên mua, tổng dương) / Bán ròng / Thấ
 Divergence: giá tăng + bán mạnh → cảnh báo; giá giảm + mua mạnh → tín hiệu đỡ.
 Hàm ý: Ủng hộ xu hướng / Cảnh báo nhiễu / Trung tính.
 
+OUTPUT NGOÀI:
+Khối ngoại: mua ròng/bán ròng + số lượng net
+Tự doanh: mua ròng/bán ròng + số lượng net
+
 OUTPUT JSON (chỉ trả JSON):
 {
-  "foreign": "phân loại + 1 câu ngắn gọn",
-  "proprietary": "phân loại + 1 câu ngắn gọn",
-  "implication": "hàm ý tổng hợp"
+  "Khối ngoại": "phân loại + 1 câu ngắn gọn",
+  "Tự doanh": "phân loại + 1 câu ngắn gọn",
+  "Tác động": "hàm ý tổng hợp"
 }`,
 
   L4: `${SYSTEM_PROMPT}
@@ -97,11 +109,16 @@ LỚP 5 — TIN TỨC DOANH NGHIỆP
 
 Tóm mỗi tin thành 1 dòng. Đánh giá: Tích cực/Tiêu cực/Trung tính/Chưa rõ.
 
+OUTPUT NGOÀI: 
+Tổng quan: ghiêng tích cực/nghiêng tiêu cực/trái chiều/trung tính
+Điểm: 
+Tâm lý
+
 OUTPUT JSON (chỉ trả JSON):
 {
-  "items": ["tin 1 tóm tắt | Tích cực", "tin 2 tóm tắt | Trung tính"],
-  "overview": "nghiêng tích cực/nghiêng tiêu cực/trái chiều/trung tính",
-  "implication": "hỗ trợ tâm lý/gây áp lực/tăng biến động/cần chờ xác nhận"
+  "Tin tức": ["tin 1 tóm tắt | Tích cực", "tin 2 tóm tắt | Trung tính"],
+  "Tổng quan": "nghiêng tích cực/nghiêng tiêu cực/trái chiều/trung tính",
+  "Tác động": "hỗ trợ tâm lý/gây áp lực/tăng biến động/cần chờ xác nhận"
 }`,
 
   L6: `${SYSTEM_PROMPT}
@@ -112,16 +129,22 @@ Logic: Bias (L1+L3) → Execution (L2) → Nội bộ (L4) → Tin tức (L5).
 Hành động: Mua / Giữ / Quan sát / Giảm tỷ trọng.
 Không tạo mốc mới, chỉ dùng S1/R1 từ L1.
 
+OUTPUT NGOÀI: 
+  "Hành động chính": "Mua/Giữ/Quan sát/Giảm tỷ trọng + lý do ngắn",
+  "Kịch bản thuận lợi": "kịch bản tốt + điều kiện",
+  "Kịch bản bất lợi": "kịch bản xấu + điều kiện",
+  "Kịch bản đi ngang": "kịch bản đi ngang + rủi ro chính"
+
 OUTPUT JSON (chỉ trả JSON):
 {
-  "overview": "tóm tắt tổng quan 1-2 câu",
-  "liquidityAction": "nhận xét thanh khoản",
-  "capitalFlow": "nhận xét dòng tiền",
-  "insiderSummary": "nhận xét nội bộ",
-  "newsImpact": "nhận xét tin tức",
-  "mainAction": "Mua/Giữ/Quan sát/Giảm tỷ trọng + lý do ngắn",
-  "bestCase": "kịch bản tốt + điều kiện",
-  "worstCase": "kịch bản xấu + điều kiện",
-  "sidewaysAndRisk": "kịch bản đi ngang + rủi ro chính"
+  "Tổng quan": "tóm tắt tổng quan 1-2 câu",
+  "Thanh khoản": "nhận xét thanh khoản",
+  "Dòng tiền": "nhận xét dòng tiền",
+  "Giao dịch nội bộ": "nhận xét nội bộ",
+  "Tin tức": "nhận xét tin tức",
+  "Hành động chính": "Mua/Giữ/Quan sát/Giảm tỷ trọng + lý do ngắn",
+  "Kịch bản thuận lợi": "kịch bản tốt + điều kiện",
+  "Kịch bản bất lợi": "kịch bản xấu + điều kiện",
+  "Kịch bản đi ngang": "kịch bản đi ngang + rủi ro chính"
 }`,
 } as const;
