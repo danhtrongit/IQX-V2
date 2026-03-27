@@ -76,19 +76,19 @@ function RoomListView({
   const { user } = useAuth()
   const [search, setSearch] = useState("")
 
-  const filtered = rooms.filter(
-    (r) =>
-      !search ||
-      r.name?.toLowerCase().includes(search.toLowerCase()) ||
-      r.members.some((m) =>
-        m.user.fullName?.toLowerCase().includes(search.toLowerCase()),
-      ),
-  )
+    const filtered = rooms.filter(
+      (r) =>
+        !search ||
+        r.name?.toLowerCase().includes(search.toLowerCase()) ||
+        (r.members || []).some((m) =>
+          m.user.fullName?.toLowerCase().includes(search.toLowerCase()),
+        ),
+    )
 
   const getRoomDisplayName = (room: ChatRoom) => {
     if (room.name) return room.name
     if (room.type === "DIRECT") {
-      const other = room.members.find((m) => m.userId !== user?.id)
+      const other = (room.members || []).find((m) => m.userId !== user?.id)
       return other?.user.fullName || other?.user.email || "Tin nhắn"
     }
     return "Phòng chat"
@@ -186,7 +186,7 @@ function RoomListView({
             filtered.map((room) => {
               const isOnline =
                 room.type === "DIRECT" &&
-                room.members.some(
+                (room.members || []).some(
                   (m) => m.userId !== user?.id && onlineUsers.includes(m.userId),
                 )
 
@@ -481,7 +481,7 @@ function ChatRoomView({
   const getRoomDisplayName = () => {
     if (room.name) return room.name
     if (room.type === "DIRECT") {
-      const other = room.members.find((m) => m.userId !== user?.id)
+      const other = (room.members || []).find((m) => m.userId !== user?.id)
       return other?.user.fullName || other?.user.email || "Tin nhắn"
     }
     return "Chat"
@@ -490,11 +490,11 @@ function ChatRoomView({
   const typingInRoom = Array.from(typingUsers.entries())
     .filter(([uid, rid]) => rid === room.id && uid !== user?.id)
     .map(([uid]) => {
-      const member = room.members.find((m) => m.userId === uid)
+      const member = (room.members || []).find((m) => m.userId === uid)
       return member?.user?.fullName?.split(" ").pop() || "..."
     })
 
-  const onlineMemberCount = room.members.filter((m) =>
+  const onlineMemberCount = (room.members || []).filter((m) =>
     onlineUsers.includes(m.userId),
   ).length
 
