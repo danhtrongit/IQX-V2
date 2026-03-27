@@ -11,7 +11,7 @@ import {
     type NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { TrendingUp, Droplets, ArrowLeftRight, Users, Newspaper, Brain, Sparkles } from 'lucide-react';
+import { TrendingUp, Droplets, ArrowLeftRight, Users, Newspaper, Sparkles } from 'lucide-react';
 
 const LAYER_CFG: Record<string, { label: string; short: string; icon: typeof TrendingUp; color: string; summary: string }> = {
     trend: { label: 'Xu hướng', short: 'L1', icon: TrendingUp, color: '#3b82f6', summary: 'Tăng — MA20 đi lên, giá trên hỗ trợ' },
@@ -41,7 +41,7 @@ function DemoLayerNode({ data }: NodeProps) {
     );
 }
 
-function DemoCenterNode({ data }: NodeProps) {
+function DemoCenterNode({ }: NodeProps) {
     return (
         <>
             <Handle type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
