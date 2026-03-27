@@ -109,13 +109,14 @@ function renderOutput(output: any): React.ReactNode {
   if (output.error) return <span className="text-red-400 text-[10px]">⚠️ {output.error}</span>
   if (output.text) return <span className="whitespace-pre-wrap">{output.text}</span>
 
-  // Structured JSON output → render key-value
+  // Structured JSON output → render key-value (keys are Vietnamese)
   return (
     <div className="space-y-1">
       {Object.entries(output).map(([key, val]) => {
-        if (key === "items" && Array.isArray(val)) {
+        if ((key === "items" || key === "Tin tức") && Array.isArray(val)) {
           return (
             <div key={key} className="space-y-0.5">
+              <span className="text-[10px] text-muted-foreground font-semibold">{key}:</span>
               {(val as string[]).map((item, i) => (
                 <div key={i} className="text-[11px] text-foreground/80 pl-2 border-l-2 border-border/20">
                   {item}
@@ -126,8 +127,8 @@ function renderOutput(output: any): React.ReactNode {
         }
         return (
           <div key={key} className="flex gap-2">
-            <span className="text-[10px] text-muted-foreground shrink-0 min-w-[80px] capitalize">
-              {key.replace(/([A-Z])/g, " $1").trim()}:
+            <span className="text-[10px] text-muted-foreground shrink-0 min-w-[80px] font-semibold">
+              {key}:
             </span>
             <span className="text-[11px] text-foreground/90">{String(val)}</span>
           </div>
@@ -148,42 +149,62 @@ function LayerNode({ data }: NodeProps) {
   const animDelay = (data.animDelay as number) || 0
   const layerOutput = data.layerOutput as any
 
-  // Build full description from structured output
+  // Build full description from structured output (Vietnamese keys)
   const description = useMemo(() => {
     if (!layerOutput || typeof layerOutput !== "object") return ""
     if (layerOutput.text) return layerOutput.text
     const key = data.layerKey as string
     if (key === "trend") {
-      const parts = [layerOutput.trend, layerOutput.state, layerOutput.note].filter(Boolean)
+      const parts = [
+        layerOutput["Xu hướng"] || layerOutput.trend,
+        layerOutput["Trạng thái"] || layerOutput.state,
+        layerOutput["Ghi chú"] || layerOutput.note,
+      ].filter(Boolean)
       return parts.join(". ")
     }
     if (key === "liquidity") {
-      return [layerOutput.liquidity, layerOutput.supplyDemand, layerOutput.impact].filter(Boolean).join(". ")
+      return [
+        layerOutput["Thanh khoản"] || layerOutput.liquidity,
+        layerOutput["Cung - Cầu"] || layerOutput.supplyDemand,
+        layerOutput["Tác động"] || layerOutput.impact,
+      ].filter(Boolean).join(". ")
     }
     if (key === "moneyFlow") {
-      return [layerOutput.foreign, layerOutput.proprietary, layerOutput.implication].filter(Boolean).join(". ")
+      return [
+        layerOutput["Khối ngoại"] || layerOutput.foreign,
+        layerOutput["Tự doanh"] || layerOutput.proprietary,
+        layerOutput["Tác động"] || layerOutput.implication,
+      ].filter(Boolean).join(". ")
     }
     if (key === "insider") {
-      return [layerOutput.insider, layerOutput.impactLevel].filter(Boolean).join(". ")
+      return [
+        layerOutput.insider,
+        layerOutput.impactLevel,
+      ].filter(Boolean).join(". ")
     }
     if (key === "news") {
-      return [layerOutput.overview, layerOutput.implication].filter(Boolean).join(". ")
+      return [
+        layerOutput["Tổng quan"] || layerOutput.overview,
+        layerOutput["Tác động"] || layerOutput.implication,
+      ].filter(Boolean).join(". ")
     }
     return Object.values(layerOutput).filter(v => typeof v === "string").join(". ")
   }, [layerOutput, data.layerKey])
 
-  // Extract tags for trend layer
+  // Extract tags for trend layer (supports both old English + new Vietnamese keys)
   const tags = useMemo(() => {
     if (!layerOutput || data.layerKey !== "trend") return []
     const result: { label: string; color: string }[] = []
-    if (layerOutput.trend) {
-      const t = String(layerOutput.trend).toLowerCase()
+    const trendVal = layerOutput["Xu hướng"] || layerOutput.trend
+    if (trendVal) {
+      const t = String(trendVal).toLowerCase()
       if (t.includes("tăng")) result.push({ label: "Tăng", color: "#10b981" })
       else if (t.includes("giảm")) result.push({ label: "Giảm", color: "#ef4444" })
       else result.push({ label: "Đi ngang", color: "#f59e0b" })
     }
-    if (layerOutput.state) {
-      const s = String(layerOutput.state).toLowerCase()
+    const stateVal = layerOutput["Trạng thái"] || layerOutput.state
+    if (stateVal) {
+      const s = String(stateVal).toLowerCase()
       if (s.includes("mạnh")) result.push({ label: "Mạnh", color: "#3b82f6" })
       else if (s.includes("yếu")) result.push({ label: "Yếu", color: "#94a3b8" })
       else result.push({ label: "Giằng co", color: "#f59e0b" })
@@ -252,7 +273,7 @@ function DecisionNode({ data }: NodeProps) {
 
   const overview = useMemo(() => {
     if (!layerOutput || typeof layerOutput !== "object") return ""
-    return layerOutput.overview || layerOutput.mainAction || ""
+    return layerOutput["Tổng quan"] || layerOutput.overview || layerOutput["Hành động chính"] || layerOutput.mainAction || ""
   }, [layerOutput])
 
   // Extract trend + state tags from L1 output passed via data
@@ -721,14 +742,16 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     const trendOut = insight?.layers?.trend?.output
     if (!trendOut || typeof trendOut !== "object") return []
     const result: { label: string; color: string }[] = []
-    if (trendOut.trend) {
-      const t = String(trendOut.trend).toLowerCase()
+    const trendVal = trendOut["Xu hướng"] || trendOut.trend
+    if (trendVal) {
+      const t = String(trendVal).toLowerCase()
       if (t.includes("tăng")) result.push({ label: "Tăng", color: "#10b981" })
       else if (t.includes("giảm")) result.push({ label: "Giảm", color: "#ef4444" })
       else result.push({ label: "Đi ngang", color: "#f59e0b" })
     }
-    if (trendOut.state) {
-      const s = String(trendOut.state).toLowerCase()
+    const stateVal = trendOut["Trạng thái"] || trendOut.state
+    if (stateVal) {
+      const s = String(stateVal).toLowerCase()
       if (s.includes("mạnh")) result.push({ label: "Mạnh", color: "#3b82f6" })
       else if (s.includes("yếu")) result.push({ label: "Yếu", color: "#94a3b8" })
       else result.push({ label: "Giằng co", color: "#f59e0b" })
