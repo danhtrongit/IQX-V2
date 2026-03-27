@@ -21,7 +21,7 @@ export class RedisCacheService {
     [CacheType.REAL_TIME]: 30 * 1000,
     [CacheType.STATIC]: 60 * 60 * 1000,
     [CacheType.SEARCH]: 5 * 60 * 1000,
-    [CacheType.AI_INSIGHT]: 5 * 60 * 1000,
+    [CacheType.AI_INSIGHT]: 60 * 60 * 1000,
     [CacheType.AI_NEWS]: 5 * 60 * 1000,
     [CacheType.FINANCIAL]: 15 * 60 * 1000,
     [CacheType.LISTING]: 60 * 60 * 1000,
