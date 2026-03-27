@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check, Zap, Crown, Rocket } from 'lucide-react';
 
 const periods = [
-    { key: '1m', label: '1 Tháng', discount: 0 },
+    { key: '1m', label: '1 Tháng', discount: 0, badge: '' },
     { key: '6m', label: '6 Tháng', discount: 20, badge: 'Tiết kiệm 20%' },
     { key: '1y', label: '1 Năm', discount: 30, badge: 'Tiết kiệm 30%' },
 ] as const;
