@@ -1,13 +1,10 @@
 import HomeHeader from '@/components/home/HomeHeader'
 import HeroSection from '@/components/home/HeroSection'
-import InsightSection from '@/components/home/InsightSection'
 import CoreValuesSection from '@/components/home/CoreValuesSection'
+import InsightSection from '@/components/home/InsightSection'
 import PricingSection from '@/components/home/PricingSection'
-import AgentsSection from '@/components/home/AgentsSection'
-import AnalysisSection from '@/components/home/AnalysisSection'
-import ScenarioSection from '@/components/home/ScenarioSection'
+import ContactSection from '@/components/home/ContactSection'
 import FAQSection from '@/components/home/FAQSection'
-import CTASection from '@/components/home/CTASection'
 import HomeFooter from '@/components/home/HomeFooter'
 
 export default function HomePage() {
@@ -15,15 +12,18 @@ export default function HomePage() {
         <div style={{ background: '#000', minHeight: '100vh' }}>
             <HomeHeader />
             <main>
+                {/* Section 1 — Hero: Text + Auth + AI Demo */}
                 <HeroSection />
-                <InsightSection />
+                {/* Section 2 — ARIX AI: Giá trị cốt lõi */}
                 <CoreValuesSection />
+                {/* Section 3 — Tổng quan */}
+                <InsightSection />
+                {/* Section 4 — Giá */}
                 <PricingSection />
-                <AgentsSection />
-                <AnalysisSection />
-                <ScenarioSection />
+                {/* Section 5 — Liên hệ */}
+                <ContactSection />
+                {/* Section 6 — FAQ */}
                 <FAQSection />
-                <CTASection />
             </main>
             <HomeFooter />
         </div>

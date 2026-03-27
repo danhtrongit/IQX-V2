@@ -269,7 +269,7 @@ function DecisionNode({ data }: NodeProps) {
   const isVisible = data.isVisible as boolean
   const isActive = data.isActive as boolean
   const layerOutput = data.layerOutput as any
-  const priceData = data.priceData as { price: number; change: number; changePct: number } | null
+
 
   const overview = useMemo(() => {
     if (!layerOutput || typeof layerOutput !== "object") return ""
@@ -304,17 +304,7 @@ function DecisionNode({ data }: NodeProps) {
             </div>
           </div>
 
-          {/* Price */}
-          {priceData && (
-            <div className="text-center mb-2">
-              <span className="text-xl font-bold text-foreground tabular-nums">
-                {priceData.price.toLocaleString("vi-VN")}
-              </span>
-              <span className={`text-[11px] font-semibold ml-2 px-1.5 py-0.5 rounded ${priceData.changePct >= 0 ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
-                {priceData.changePct >= 0 ? "+" : ""}{priceData.changePct.toFixed(2)}%
-              </span>
-            </div>
-          )}
+
 
           {/* Trend + State tags */}
           {trendTags && trendTags.length > 0 && (

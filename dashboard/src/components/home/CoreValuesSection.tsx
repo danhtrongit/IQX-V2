@@ -13,142 +13,47 @@ const coreValues = [
     },
     {
         icon: <ShieldCheck size={28} />,
-        title: 'Giảm giao dịch theo cảm xúc',
+        title: 'Chuẩn hóa quyết định đầu tư',
         description: 'Tín hiệu dựa trên dữ liệu và tiêu chí nhất quán giúp bạn bám kế hoạch, hạn chế FOMO và ra quyết định kỷ luật hơn.',
     },
     {
         icon: <Bell size={28} />,
-        title: 'Không bỏ lỡ cơ hội',
+        title: 'Tín hiệu đầu tư',
         description: 'Khi có biến động đáng chú ý, hệ thống gửi cập nhật kịp thời để bạn nắm bắt xu hướng và chuẩn bị kịch bản phù hợp.',
     },
 ];
 
 export default function CoreValuesSection() {
     return (
-        <section
-            id="core-values"
-            style={{
-                position: 'relative',
-                padding: '120px 40px',
-                background: '#000',
-                overflow: 'hidden',
-            }}
-        >
-            <div style={{
-                position: 'absolute',
-                bottom: '-100px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '600px',
-                height: '300px',
-                background: 'radial-gradient(ellipse, rgba(0, 168, 232, 0.05) 0%, transparent 70%)',
-                pointerEvents: 'none',
-            }} />
+        <section id="core-values" style={{ position: 'relative', padding: '120px 40px', background: '#000', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', bottom: '-100px', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '300px', background: 'radial-gradient(ellipse, rgba(0, 168, 232, 0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
             <div style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
                 <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-                    <h2 style={{
-                        fontSize: 'clamp(32px, 4vw, 52px)',
-                        fontWeight: 700,
-                        marginBottom: '20px',
-                        letterSpacing: '-0.5px',
-                    }}>
-                        <span style={{
-                            background: 'linear-gradient(135deg, #00A8E8 0%, #0081B7 50%, #006994 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                        }}>
-                            ARIX AI
-                        </span>
+                    <h2 style={{ fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 700, marginBottom: '20px', letterSpacing: '-0.5px' }}>
+                        <span style={{ background: 'linear-gradient(135deg, #00A8E8 0%, #0081B7 50%, #006994 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>ARIX AI</span>
                         <span style={{ color: '#fff' }}> - Giá trị cốt lõi</span>
                     </h2>
-                    <p style={{
-                        fontSize: '17px',
-                        color: 'rgba(255,255,255,0.55)',
-                        maxWidth: '700px',
-                        margin: '0 auto',
-                        lineHeight: 1.7,
-                    }}>
+                    <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.55)', maxWidth: '700px', margin: '0 auto', lineHeight: 1.7 }}>
                         AI phân tích dữ liệu đa nguồn theo thời gian thực, chắt lọc tín hiệu quan trọng và chuyển thành kịch bản hành động rõ ràng.
                     </p>
                 </div>
 
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '24px',
-                }} className="core-values-grid">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }} className="core-values-grid">
                     {coreValues.map((item, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                background: 'rgba(255,255,255,0.02)',
-                                border: '1px solid rgba(255,255,255,0.06)',
-                                borderRadius: '16px',
-                                padding: '36px 32px',
-                                transition: 'all 0.3s ease',
-                                cursor: 'default',
-                                position: 'relative',
-                                overflow: 'hidden',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                                e.currentTarget.style.borderColor = 'rgba(0, 168, 232, 0.2)';
-                                e.currentTarget.style.transform = 'translateY(-4px)';
-                                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.3)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = 'none';
-                            }}
+                        <div key={i} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '16px', padding: '36px 32px', transition: 'all 0.3s ease', cursor: 'default', position: 'relative', overflow: 'hidden' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(0, 168, 232, 0.2)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.3)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
                         >
-                            <div style={{
-                                position: 'absolute',
-                                top: '-50%',
-                                right: '-50%',
-                                width: '200px',
-                                height: '200px',
-                                borderRadius: '50%',
-                                background: 'radial-gradient(circle, rgba(0, 168, 232, 0.03) 0%, transparent 70%)',
-                                pointerEvents: 'none',
-                            }} />
-
-                            <div style={{
-                                color: '#00A8E8',
-                                marginBottom: '20px',
-                                opacity: 0.9,
-                            }}>
-                                {item.icon}
-                            </div>
-                            <h3 style={{
-                                fontSize: '20px',
-                                fontWeight: 700,
-                                color: '#fff',
-                                marginBottom: '12px',
-                            }}>
-                                {item.title}
-                            </h3>
-                            <p style={{
-                                fontSize: '15px',
-                                color: 'rgba(255,255,255,0.5)',
-                                lineHeight: 1.7,
-                            }}>
-                                {item.description}
-                            </p>
+                            <div style={{ position: 'absolute', top: '-50%', right: '-50%', width: '200px', height: '200px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(0, 168, 232, 0.03) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                            <div style={{ color: '#00A8E8', marginBottom: '20px', opacity: 0.9 }}>{item.icon}</div>
+                            <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{item.title}</h3>
+                            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{item.description}</p>
                         </div>
                     ))}
                 </div>
             </div>
-
-            <style>{`
-        @media (max-width: 768px) {
-          .core-values-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+            <style>{`@media (max-width: 768px) { .core-values-grid { grid-template-columns: 1fr !important; } }`}</style>
         </section>
     );
 }
