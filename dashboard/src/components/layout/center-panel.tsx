@@ -1,6 +1,22 @@
+import { useCallback } from "react"
+import { useNavigate } from "react-router"
 import { TVChart } from "@/components/chart/tv-chart"
+import { useSymbol } from "@/contexts/symbol-context"
 
 export function CenterPanel() {
+  const { symbol } = useSymbol()
+  const navigate = useNavigate()
+
+  const handleSymbolChanged = useCallback(
+    (newSymbol: string) => {
+      const clean = newSymbol.split(":").pop()?.toUpperCase() || newSymbol.toUpperCase()
+      if (clean) {
+        navigate(`/co-phieu/${clean}`)
+      }
+    },
+    [navigate],
+  )
+
   return (
     <section
       id="center-panel"
@@ -8,7 +24,12 @@ export function CenterPanel() {
     >
       {/* TradingView Chart - fills entire center panel */}
       <div className="flex-1 min-h-0">
-        <TVChart symbol="VNINDEX" interval="D" theme="dark" />
+        <TVChart
+          symbol={symbol}
+          interval="D"
+          theme="dark"
+          onSymbolChanged={handleSymbolChanged}
+        />
       </div>
     </section>
   )

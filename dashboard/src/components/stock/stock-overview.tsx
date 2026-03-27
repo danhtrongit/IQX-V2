@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { StockLogo } from "@/components/stock/stock-logo"
 import {
   Loader2,
   TrendingUp,
@@ -171,6 +172,13 @@ export function StockOverview({ symbol }: { symbol: string }) {
 
           {/* Price Header */}
           <div>
+            <div className="flex items-center gap-3 mb-1">
+              <StockLogo symbol={symbol} size={36} />
+              <div>
+                <span className="text-sm font-bold text-foreground">{profile?.organShortName || symbol}</span>
+                <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{profile?.organName || ""}</p>
+              </div>
+            </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-foreground tabular-nums">
                 {price ? fmtPrice(price) : "—"}

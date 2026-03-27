@@ -147,10 +147,14 @@ async function main() {
     }
     console.log(`  ✅ ${sectorCount} sectors saved`);
 
-    // ===== Upsert stocks =====
+    // ===== Upsert stocks (batched with logoUrl) =====
     console.log('💾 Saving stocks...');
     let stockCount = 0;
     let skipped = 0;
+
+    const CDN_BASE = 'https://cdn.simplize.vn/simplizevn/logo';
+    const BATCH_SIZE = 50;
+    const upsertOps: any[] = [];
 
     for (const item of kbsSymbols) {
       const symbol = item.symbol?.toUpperCase();
@@ -169,6 +173,7 @@ async function main() {
         nameEn: icbInfo?.enOrganName || item.nameEn || null,
         exchange,
         type: item.type || 'stock',
+        logoUrl: `${CDN_BASE}/${symbol}.jpeg`,
         sectorCode: sectorInfo?.code || null,
         sectorName: sectorInfo?.name || null,
         icbCode1: icbInfo?.icbCode1 || null,
@@ -180,16 +185,28 @@ async function main() {
         comTypeCode: icbInfo?.comTypeCode || null,
       };
 
-      await prisma.stock.upsert({
-        where: { symbol },
-        update: data,
-        create: { symbol, ...data },
-      });
+      upsertOps.push(
+        prisma.stock.upsert({
+          where: { symbol },
+          update: data,
+          create: { symbol, ...data },
+        }),
+      );
       stockCount++;
 
-      if (stockCount % 200 === 0) {
-        console.log(`  → ${stockCount}/${kbsSymbols.length} ...`);
+      // Execute in batches for transaction efficiency
+      if (upsertOps.length >= BATCH_SIZE) {
+        await prisma.$transaction(upsertOps);
+        upsertOps.length = 0;
+        if (stockCount % 200 === 0) {
+          console.log(`  → ${stockCount}/${kbsSymbols.length} ...`);
+        }
       }
+    }
+
+    // Flush remaining
+    if (upsertOps.length > 0) {
+      await prisma.$transaction(upsertOps);
     }
 
     console.log(`  ✅ ${stockCount} stocks saved (${skipped} skipped)`);

@@ -7,6 +7,7 @@ interface TVChartProps {
   theme?: "dark" | "light"
   autosize?: boolean
   className?: string
+  onSymbolChanged?: (symbol: string) => void
 }
 
 function TVChartInner({
@@ -15,9 +16,16 @@ function TVChartInner({
   theme = "dark",
   autosize = true,
   className = "",
+  onSymbolChanged,
 }: TVChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetRef = useRef<any>(null)
+  const onSymbolChangedRef = useRef(onSymbolChanged)
+
+  // Keep ref in sync to avoid re-creating widget on callback change
+  useEffect(() => {
+    onSymbolChangedRef.current = onSymbolChanged
+  }, [onSymbolChanged])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -113,6 +121,20 @@ function TVChartInner({
       })
 
       widgetRef.current = widget
+
+      // Listen for symbol changes inside TradingView widget
+      widget.onChartReady(() => {
+        const chart = widget.activeChart()
+
+        chart.onSymbolChanged().subscribe(null, () => {
+          const info = chart.symbolExt()
+          const newSymbol = (info?.symbol || info?.ticker || "").toUpperCase()
+
+          if (newSymbol && onSymbolChangedRef.current) {
+            onSymbolChangedRef.current(newSymbol)
+          }
+        })
+      })
     }
 
     initChart()

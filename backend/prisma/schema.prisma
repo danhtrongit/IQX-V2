@@ -119,6 +119,8 @@ model Stock {
   exchange    String   // HOSE, HNX, UPCOM
   type        String   @default("stock")
 
+  logoUrl     String?  @map("logo_url")
+
   // KBS sector
   sectorCode  String?  @map("sector_code")
   sectorName  String?  @map("sector_name")

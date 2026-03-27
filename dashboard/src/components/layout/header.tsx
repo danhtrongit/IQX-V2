@@ -18,6 +18,7 @@ import {
   TrendingUp,
 
 } from "lucide-react"
+import { StockLogo } from "@/components/stock/stock-logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -217,11 +218,7 @@ function StockSearch() {
                   : "hover:bg-accent/50"
               }`}
             >
-              <div className="size-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-bold text-primary">
-                  {stock.symbol.slice(0, 3)}
-                </span>
-              </div>
+              <StockLogo symbol={stock.symbol} size={28} className="rounded-md" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-foreground">

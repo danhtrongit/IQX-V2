@@ -1,0 +1,20 @@
+#!/usr/bin/expect -f
+set timeout 10
+set password "Timem.2302"
+set ip "160.22.123.174"
+set user "root"
+
+set pubkey ""
+set fd [open "~/.ssh/id_ed25519.pub" r]
+set pubkey [read $fd]
+close $fd
+
+spawn ssh -o StrictHostKeyChecking=no $user@$ip "mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '$pubkey' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+
+expect {
+    "*assword:*" {
+        send "$password\r"
+        exp_continue
+    }
+    eof
+}

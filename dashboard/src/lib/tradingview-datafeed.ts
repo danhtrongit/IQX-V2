@@ -211,31 +211,47 @@ export function createDataFeed(): any {
       setTimeout(() => callback(CONFIG), 0)
     },
 
-    searchSymbols(
+    async searchSymbols(
       userInput: string,
       _exchange: string,
       _symbolType: string,
       onResult: (items: any[]) => void,
     ) {
-      // Simple search - for full search, add a backend endpoint
-      const input = userInput.toUpperCase()
-      const results = [
-        "VNINDEX", "VN30", "HNX", "UPCOM",
-        "VCB", "BID", "CTG", "TCB", "MBB",
-        "VHM", "VIC", "HPG", "FPT", "MWG",
-        "VNM", "MSN", "SSI", "VPB", "ACB",
-        "GAS", "PLX", "SAB", "PNJ", "REE",
-      ]
-        .filter((s) => s.includes(input))
-        .map((s) => ({
-          symbol: s,
-          full_name: `${INDEX_SYMBOLS.has(s) ? "INDEX" : "HOSE"}:${s}`,
-          description: INDEX_SYMBOLS.has(s) ? `Chỉ số ${s}` : s,
-          exchange: INDEX_SYMBOLS.has(s) ? "INDEX" : "HOSE",
-          type: INDEX_SYMBOLS.has(s) ? "index" : "stock",
-        }))
+      const input = userInput.trim()
+      if (!input) {
+        onResult([])
+        return
+      }
 
-      onResult(results)
+      try {
+        const resp = await fetch(
+          `${API_BASE}/stocks?q=${encodeURIComponent(input)}&limit=20`,
+        )
+        if (!resp.ok) {
+          onResult([])
+          return
+        }
+
+        const json = await resp.json()
+        const items = json?.data || []
+
+        const results = items.map((item: any) => {
+          const symbol = (item.symbol || "").toUpperCase()
+          const isIndex = INDEX_SYMBOLS.has(symbol)
+          return {
+            symbol,
+            full_name: `${item.exchange || (isIndex ? "INDEX" : "HOSE")}:${symbol}`,
+            description: item.name || item.nameEn || (isIndex ? `Chỉ số ${symbol}` : symbol),
+            exchange: item.exchange || (isIndex ? "INDEX" : "HOSE"),
+            type: isIndex ? "index" : "stock",
+            ticker: symbol,
+          }
+        })
+
+        onResult(results)
+      } catch {
+        onResult([])
+      }
     },
 
     resolveSymbol(

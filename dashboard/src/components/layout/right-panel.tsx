@@ -11,6 +11,8 @@ import {
   Trophy,
   Zap,
 } from "lucide-react"
+import { StockLogo } from "@/components/stock/stock-logo"
+import { useWatchlist } from "@/hooks/use-watchlist"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -147,6 +149,7 @@ export function RightPanel() {
 
   const { data, isLoading } = usePriceBoard(symbol, 5000)
   const { account, refresh: refreshAccount } = useArenaAccount(isAuthenticated, 15000)
+  const { isSymbolWatched, toggleSymbol } = useWatchlist()
 
   // Portfolio position for current symbol
   const position = account?.portfolio?.find((p) => p.symbol === symbol.toUpperCase())
@@ -295,6 +298,7 @@ export function RightPanel() {
           <>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                <StockLogo symbol={data.symbol} size={28} />
                 <button
                   className="text-sm font-bold text-foreground hover:text-primary transition-colors"
                   onClick={() => navigate(`/co-phieu/${data.symbol}`)}
@@ -304,9 +308,34 @@ export function RightPanel() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-5 text-muted-foreground hover:text-amber-500"
+                  className={`size-5 transition-colors ${
+                    isSymbolWatched(data.symbol)
+                      ? "text-amber-500 hover:text-amber-400"
+                      : "text-muted-foreground hover:text-amber-500"
+                  }`}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      toast.warning("Đăng nhập để theo dõi mã CK", {
+                        action: {
+                          label: "Đăng nhập",
+                          onClick: () => setShowAuthModal(true),
+                        },
+                      })
+                      return
+                    }
+                    toggleSymbol(data.symbol)
+                    toast.success(
+                      isSymbolWatched(data.symbol)
+                        ? `Đã bỏ theo dõi ${data.symbol}`
+                        : `Đã thêm ${data.symbol} vào danh sách`,
+                    )
+                  }}
                 >
-                  <Star className="size-3" />
+                  <Star
+                    className={`size-3 ${
+                      isSymbolWatched(data.symbol) ? "fill-current" : ""
+                    }`}
+                  />
                 </Button>
               </div>
               <Badge variant="secondary" className="text-[10px]">

@@ -13,6 +13,7 @@ interface SearchResult {
   nameEn: string | null;
   exchange: string;
   type: string;
+  logoUrl: string | null;
   sectorCode: string | null;
   sectorName: string | null;
   icbCode3: string | null;
@@ -141,6 +142,7 @@ export class StocksService {
         nameEn: true,
         exchange: true,
         type: true,
+        logoUrl: true,
         sectorCode: true,
         sectorName: true,
         icbCode3: true,

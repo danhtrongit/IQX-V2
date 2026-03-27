@@ -4,103 +4,110 @@ import {
   Newspaper,
   BarChart2,
   Lightbulb,
-  TrendingUp,
-  List,
   MessageSquare,
-  Bell,
+  Activity,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 import { useChat } from "@/contexts/chat-context"
+import { useSidebar, type SidebarPanel } from "@/contexts/sidebar-context"
 
-interface QuickAction {
-  icon: React.ReactNode
+interface ToolbarItem {
+  icon: React.ElementType
   label: string
   id: string
   badge?: number
+  panel?: SidebarPanel
   onClick?: () => void
 }
 
-const QUICK_ACTIONS: QuickAction[] = [
-  { icon: <ShoppingCart className="size-4" />, label: "Đặt lệnh", id: "order" },
-  { icon: <Eye className="size-4" />, label: "Danh mục theo dõi", id: "watchlist" },
-  { icon: <List className="size-4" />, label: "Danh mục đầu tư", id: "portfolio" },
-  { icon: <TrendingUp className="size-4" />, label: "Tín hiệu kỹ thuật", id: "signals" },
-  { icon: <BarChart2 className="size-4" />, label: "Mẫu hình nến", id: "patterns" },
-]
-
-function ActionButton({ action }: { action: QuickAction }) {
+function ToolbarButton({
+  item,
+  isActive,
+  onClick,
+}: {
+  item: ToolbarItem
+  isActive: boolean
+  onClick: () => void
+}) {
+  const Icon = item.icon
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          id={`quick-${action.id}`}
-          variant="ghost"
-          size="icon"
-          className="size-8 text-muted-foreground hover:text-foreground relative"
-          onClick={action.onClick}
-        >
-          {action.icon}
-          {action.badge && action.badge > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 size-3.5 bg-destructive text-white text-[8px] font-bold rounded-full flex items-center justify-center">
-              {action.badge > 9 ? "9+" : action.badge}
-            </span>
-          )}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="left">
-        <p>{action.label}</p>
-      </TooltipContent>
-    </Tooltip>
+    <button
+      id={`toolbar-${item.id}`}
+      onClick={onClick}
+      className={`relative flex flex-col items-center justify-center gap-0.5 w-full py-2 px-1 rounded-md transition-colors ${
+        isActive
+          ? "text-primary bg-primary/10"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+      }`}
+    >
+      <Icon className="size-[18px]" />
+      <span className="text-[9px] font-medium leading-tight text-center">
+        {item.label}
+      </span>
+      {item.badge != null && item.badge > 0 && (
+        <span className="absolute top-1 right-1 size-3.5 bg-destructive text-white text-[7px] font-bold rounded-full flex items-center justify-center">
+          {item.badge > 9 ? "9+" : item.badge}
+        </span>
+      )}
+    </button>
   )
 }
 
 export function RightToolbar({ onActionClick }: { onActionClick?: (id: string) => void }) {
-  const { isOpen, setIsOpen, rooms } = useChat()
+  const { rooms } = useChat()
+  const { activePanel, setActivePanel } = useSidebar()
 
   const totalUnread = rooms.reduce((sum, r) => sum + (r.unreadCount || 0), 0)
 
-  const INFO_ACTIONS: QuickAction[] = [
-    { icon: <Newspaper className="size-4" />, label: "Tin tức", id: "news", badge: 3, onClick: () => onActionClick?.("news") },
-    { icon: <Lightbulb className="size-4" />, label: "AI Phân tích", id: "ai-insight", onClick: () => onActionClick?.("ai-insight") },
-    {
-      icon: <MessageSquare className={`size-4 ${isOpen ? "text-primary" : ""}`} />,
-      label: "Chat / Thảo luận",
-      id: "chat",
-      badge: totalUnread,
-      onClick: () => setIsOpen(!isOpen),
-    },
-    { icon: <Bell className="size-4" />, label: "Cảnh báo giá", id: "alerts", onClick: () => onActionClick?.("alerts") },
+  const handleClick = (item: ToolbarItem) => {
+    if (item.panel) {
+      setActivePanel(item.panel)
+    } else if (item.onClick) {
+      item.onClick()
+    } else {
+      onActionClick?.(item.id)
+    }
+  }
+
+  const ITEMS: ToolbarItem[] = [
+    { icon: ShoppingCart, label: "Đặt lệnh", id: "order", panel: "trading" },
+    { icon: Eye, label: "Theo dõi", id: "watchlist", panel: "watchlist" },
+    { icon: Newspaper, label: "Tin tức", id: "news", panel: "news" },
+    { icon: BarChart2, label: "Mẫu hình", id: "patterns" },
+    { icon: Lightbulb, label: "AI Phân tích", id: "ai-insight", onClick: () => onActionClick?.("ai-insight") },
+    { icon: Activity, label: "Biến động", id: "signals" },
+  ]
+
+  const BOTTOM_ITEMS: ToolbarItem[] = [
+    { icon: MessageSquare, label: "Chat", id: "chat", panel: "chat", badge: totalUnread },
   ]
 
   return (
     <aside
       id="right-toolbar"
-      className="flex w-10 shrink-0 flex-col items-center border-l border-border bg-card py-1.5 gap-0.5"
+      className="flex w-16 shrink-0 flex-col items-center border-l border-border bg-card py-1 px-0.5 gap-0.5"
     >
-      {/* Quick Trading Actions */}
-      <div className="flex flex-col items-center gap-0.5">
-        {QUICK_ACTIONS.map((action) => (
-          <ActionButton key={action.id} action={{ ...action, onClick: action.onClick || (() => onActionClick?.(action.id)) }} />
-        ))}
-      </div>
+      {ITEMS.map((item) => (
+        <ToolbarButton
+          key={item.id}
+          item={item}
+          isActive={item.panel === activePanel}
+          onClick={() => handleClick(item)}
+        />
+      ))}
 
-      <Separator className="w-6 my-1" />
+      <Separator className="w-8 my-0.5" />
 
-      {/* Information Actions */}
-      <div className="flex flex-col items-center gap-0.5">
-        {INFO_ACTIONS.map((action) => (
-          <ActionButton key={action.id} action={action} />
-        ))}
-      </div>
+      {BOTTOM_ITEMS.map((item) => (
+        <ToolbarButton
+          key={item.id}
+          item={item}
+          isActive={item.panel === activePanel}
+          onClick={() => handleClick(item)}
+        />
+      ))}
 
       <div className="flex-1" />
     </aside>
   )
 }
-

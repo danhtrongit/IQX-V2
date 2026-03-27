@@ -163,6 +163,38 @@ export function usePriceBoard(symbol: string, refreshInterval = 10000) {
   return { data, isLoading }
 }
 
+// ── Multi-symbol PriceBoard (batch polling) ──
+
+export function useMultiPriceBoard(symbols: string[], refreshInterval = 10000) {
+  const [priceMap, setPriceMap] = useState<Record<string, PriceBoardData>>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const symbolsKey = symbols.sort().join(",")
+
+  const load = useCallback(async () => {
+    if (symbols.length === 0) {
+      setPriceMap({})
+      setIsLoading(false)
+      return
+    }
+    const results = await fetchPriceBoard(symbols.map((s) => s.toUpperCase()))
+    const map: Record<string, PriceBoardData> = {}
+    for (const item of results) {
+      map[item.symbol] = item
+    }
+    setPriceMap(map)
+    setIsLoading(false)
+  }, [symbolsKey])
+
+  useEffect(() => {
+    load()
+    if (symbols.length === 0) return
+    const timer = setInterval(load, refreshInterval)
+    return () => clearInterval(timer)
+  }, [load, refreshInterval, symbolsKey])
+
+  return { priceMap, isLoading }
+}
+
 // ── Arena Account Hook ──
 
 export interface ArenaAccountData {

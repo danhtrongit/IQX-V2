@@ -1,31 +1,42 @@
-import { useState, useRef } from "react"
+import { useState, useCallback } from "react"
 import {
   Header,
   MarketBar,
-  RightPanel,
+  RightSidebar,
   RightToolbar,
   Footer,
 } from "@/components/layout"
-import { ChatPanel } from "@/components/chat/chat-panel"
 import { TVChart } from "@/components/chart/tv-chart"
 import { StockOverview } from "@/components/stock/stock-overview"
 import { StockFinancials } from "@/components/stock/stock-financials"
 import { StockAiInsight } from "@/components/stock/stock-ai-insight"
-import { useParams } from "react-router"
+import { useParams, useNavigate } from "react-router"
 import { SymbolProvider } from "@/contexts/symbol-context"
+import { SidebarProvider } from "@/contexts/sidebar-context"
 import { BarChart3, LineChart, Info, X, GripHorizontal } from "lucide-react"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { StockLogo } from "@/components/stock/stock-logo"
 
 type StockTab = "chart" | "overview" | "financials"
 
 export default function StockPage() {
   const { symbol } = useParams<{ symbol: string }>()
   const ticker = symbol?.toUpperCase() || "VNINDEX"
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<StockTab>("chart")
   const [isAiInsightOpen, setIsAiInsightOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
   const dragControls = useDragControls()
+
+  const handleTVSymbolChanged = useCallback(
+    (newSymbol: string) => {
+      const clean = newSymbol.split(":").pop()?.toUpperCase() || newSymbol.toUpperCase()
+      if (clean && clean !== ticker) {
+        navigate(`/co-phieu/${clean}`, { replace: true })
+      }
+    },
+    [ticker, navigate],
+  )
 
   const tabs: { id: StockTab; label: string; icon: React.ReactNode }[] = [
     { id: "chart", label: "Biểu đồ", icon: <LineChart className="size-3.5" /> },
@@ -41,112 +52,114 @@ export default function StockPage() {
 
   return (
     <SymbolProvider symbol={ticker}>
-      <div id="dashboard-root" className="flex h-svh flex-col overflow-hidden bg-background relative" ref={containerRef}>
-        <Header />
-        <MarketBar />
+      <SidebarProvider defaultPanel="trading">
+        <div id="dashboard-root" className="flex h-svh flex-col overflow-hidden bg-background relative">
+          <Header />
+          <MarketBar />
 
-        <div className="flex flex-1 min-h-0 relative">
-          <section className="flex flex-1 flex-col min-w-0 bg-background">
-            {/* Tab Navigation */}
-            <div className="flex items-center border-b border-border px-2 shrink-0">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors relative ${
-                    activeTab === tab.id
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.label}
-                  {activeTab === tab.id && (
-                    <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 min-h-0 relative">
-              {activeTab === "chart" && (
-                <TVChart symbol={ticker} interval="D" theme="dark" />
-              )}
-              {activeTab === "overview" && (
-                <StockOverview symbol={ticker} />
-              )}
-              {activeTab === "financials" && (
-                <StockFinancials symbol={ticker} />
-              )}
-            </div>
-          </section>
-
-          <RightPanel />
-          <RightToolbar onActionClick={handleActionClick} />
-
-        </div>
-
-        <Footer />
-        <ChatPanel />
-
-        {/* Draggable AI Insight Window */}
-        <AnimatePresence>
-          {isAiInsightOpen && (
-            <div className="absolute inset-0 z-[100] pointer-events-none" style={{ overflow: "hidden" }}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                drag
-                dragControls={dragControls}
-                dragListener={false}
-                dragConstraints={containerRef}
-                dragMomentum={false}
-                dragElastic={0}
-                className="absolute flex flex-col bg-card/95 backdrop-blur-xl border border-border shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
-                style={{
-                  width: "1100px",
-                  height: "700px",
-                  top: "calc(50% - 350px)",
-                  left: "calc(50% - 550px)",
-                }}
-              >
-                {/* Window Header */}
-                <div
-                  className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border cursor-move shrink-0"
-                  onPointerDown={(e) => dragControls.start(e)}
-                >
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <GripHorizontal className="size-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-foreground select-none">
-                      AI Insight - {ticker}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 rounded-sm hover:bg-destructive/20 hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsAiInsightOpen(false);
-                    }}
-                    onPointerDown={(e) => e.stopPropagation()}
+          <div className="flex flex-1 min-h-0 relative">
+            <section className="flex flex-1 flex-col min-w-0 bg-background">
+              {/* Tab Navigation */}
+              <div className="flex items-center border-b border-border px-2 shrink-0">
+                <div className="flex items-center gap-2 pr-3 mr-1 border-r border-border/30">
+                  <StockLogo symbol={ticker} size={22} />
+                  <span className="text-xs font-bold text-foreground">{ticker}</span>
+                </div>
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors relative ${
+                      activeTab === tab.id
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <X className="size-4" />
-                  </Button>
-                </div>
+                    {tab.icon}
+                    {tab.label}
+                    {activeTab === tab.id && (
+                      <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
+                    )}
+                  </button>
+                ))}
+              </div>
 
-                {/* Content */}
-                <div className="flex-1 min-h-0 relative bg-background/50">
-                  <StockAiInsight symbol={ticker} />
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
+              {/* Tab Content */}
+              <div className="flex-1 min-h-0 relative">
+                {activeTab === "chart" && (
+                  <TVChart symbol={ticker} interval="D" theme="dark" onSymbolChanged={handleTVSymbolChanged} />
+                )}
+                {activeTab === "overview" && (
+                  <StockOverview symbol={ticker} />
+                )}
+                {activeTab === "financials" && (
+                  <StockFinancials symbol={ticker} />
+                )}
+              </div>
+            </section>
+
+            <RightSidebar />
+            <RightToolbar onActionClick={handleActionClick} />
+          </div>
+
+          <Footer />
+
+          {/* Draggable AI Insight Window */}
+          <AnimatePresence>
+            {isAiInsightOpen && (
+              <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92, y: 24 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92, y: 24 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  drag
+                  dragControls={dragControls}
+                  dragListener={false}
+                  dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+                  dragMomentum={false}
+                  dragElastic={0.05}
+                  className="absolute flex flex-col bg-card/95 backdrop-blur-xl border border-border shadow-2xl rounded-xl overflow-hidden pointer-events-auto"
+                  style={{
+                    width: "min(1100px, calc(100vw - 32px))",
+                    height: "min(700px, calc(100vh - 32px))",
+                    top: "max(16px, calc(50vh - min(350px, 50vh - 16px)))",
+                    left: "max(16px, calc(50vw - min(550px, 50vw - 16px)))",
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-between px-4 py-2 bg-muted/30 border-b border-border cursor-move shrink-0"
+                    onPointerDown={(e) => dragControls.start(e)}
+                  >
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <GripHorizontal className="size-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-foreground select-none">
+                        AI Insight - {ticker}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 rounded-sm hover:bg-destructive/20 hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsAiInsightOpen(false);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex-1 min-h-0 relative bg-background/50">
+                    <StockAiInsight symbol={ticker} />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </SidebarProvider>
     </SymbolProvider>
   )
 }

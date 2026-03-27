@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { useMarketIndices, usePriceBoard, type IndexData } from "@/hooks/use-market-data"
 import { useSymbol } from "@/contexts/symbol-context"
+import { StockLogo } from "@/components/stock/stock-logo"
 
 function formatNumber(n: number, decimals = 2): string {
   return n.toLocaleString("vi-VN", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
@@ -127,6 +128,7 @@ export function MarketBar() {
       {/* Current Stock Info */}
       {stockData && (
         <div id="market-bar-stock" className="flex items-center gap-2 shrink-0">
+          <StockLogo symbol={stockData.symbol} size={20} />
           <span className="text-xs font-bold text-primary">{stockData.symbol}</span>
           <span className="text-xs font-semibold text-foreground tabular-nums">
             {formatNumber(stockData.closePrice * 1000, 0)}
