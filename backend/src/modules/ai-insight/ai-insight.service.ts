@@ -27,7 +27,7 @@ export class AiInsightService {
   ) {
     this.baseUrl = this.config.get<string>('AI_BASE_URL', '');
     this.apiKey = this.config.get<string>('AI_API_KEY', '');
-    this.model = this.config.get<string>('AI_MODEL', 'gpt-4o');
+    this.model = this.config.get<string>('AI_MODEL', 'gemini-3.1-pro-preview');
   }
 
   async analyze(symbol: string) {
@@ -57,10 +57,12 @@ export class AiInsightService {
 
     // Single AI call for all 6 layers
     let allLayers: Record<string, any> = {};
+    let aiSuccess = false;
     try {
       const userInput = this.buildCombinedInput(data);
       const raw = await this.chatCompletion(COMBINED_PROMPT, userInput);
       allLayers = this.tryParseJson(raw);
+      aiSuccess = !!allLayers.L1 && !allLayers.L1.error;
       this.logger.log(`AI response parsed successfully for ${upper}`);
     } catch (err: any) {
       this.logger.error(`AI analysis failed: ${err.message}`);
@@ -103,10 +105,13 @@ export class AiInsightService {
       },
     };
 
-    try {
-      await this.cacheService.set(cacheKey, response, CacheType.AI_INSIGHT);
-    } catch (error) {
-      this.logger.warn(`Cache set failed for AI insight: ${error.message}`);
+    // Only cache successful responses
+    if (aiSuccess) {
+      try {
+        await this.cacheService.set(cacheKey, response, CacheType.AI_INSIGHT);
+      } catch (error) {
+        this.logger.warn(`Cache set failed for AI insight: ${error.message}`);
+      }
     }
 
     return response;
@@ -131,7 +136,7 @@ export class AiInsightService {
           { role: 'user', content: userMessage },
         ],
         temperature: 0.3,
-        max_tokens: 8000,
+        max_tokens: 65536,
       }),
     });
 
