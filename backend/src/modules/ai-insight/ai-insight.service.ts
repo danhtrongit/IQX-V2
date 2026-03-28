@@ -27,7 +27,7 @@ export class AiInsightService {
   ) {
     this.baseUrl = this.config.get<string>('AI_BASE_URL', '');
     this.apiKey = this.config.get<string>('AI_API_KEY', '');
-    this.model = this.config.get<string>('AI_MODEL', 'gemini-3.1-pro-preview');
+    this.model = this.config.get<string>('AI_MODEL', 'gpt-5.2');
   }
 
   async analyze(symbol: string) {

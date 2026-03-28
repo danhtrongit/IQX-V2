@@ -16,7 +16,7 @@ import { SidebarProvider } from "@/contexts/sidebar-context"
 import { BarChart3, LineChart, Info, X, GripHorizontal } from "lucide-react"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { StockLogo } from "@/components/stock/stock-logo"
+
 import { useSEO } from "@/hooks/use-seo"
 
 type StockTab = "chart" | "overview" | "financials"
@@ -68,10 +68,7 @@ export default function StockPage() {
             <section className="flex flex-1 flex-col min-w-0 bg-background">
               {/* Tab Navigation */}
               <div className="flex items-center border-b border-border px-2 shrink-0">
-                <div className="flex items-center gap-2 pr-3 mr-1 border-r border-border/30">
-                  <StockLogo symbol={ticker} size={22} />
-                  <span className="text-xs font-bold text-foreground">{ticker}</span>
-                </div>
+
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}

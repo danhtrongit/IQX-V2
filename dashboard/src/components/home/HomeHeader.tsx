@@ -4,8 +4,8 @@ import { Link } from 'react-router';
 
 const navLinks = [
     { label: 'Trang chủ', href: '#hero' },
-    { label: 'Giá trị', href: '#core-values' },
-    { label: 'Tổng quan', href: '#insight' },
+    { label: 'Giá trị cốt lõi', href: '#core-values' },
+    { label: 'Tác nhân AI', href: '#agents-overview' },
     { label: 'Bảng giá', href: '#pricing' },
     { label: 'Liên hệ', href: '#contact' },
     { label: 'Hỗ trợ', href: '#faq' },

@@ -413,7 +413,24 @@ export function Header() {
       <div id="header-auth" className="flex items-center gap-1">
         {isAuthenticated && user ? (
           /* ── Logged in state ── */
-          <DropdownMenu>
+          <>
+            {user.tier === "FREE" && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (currentPath === "/") {
+                    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })
+                  } else {
+                    navigate("/#pricing")
+                  }
+                }}
+                className="h-7 text-[10px] gap-1 px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold tracking-wide mr-1 shadow-sm border-none"
+              >
+                <Crown className="size-3" />
+                Nâng cấp Premium
+              </Button>
+            )}
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -464,6 +481,7 @@ export function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </>
         ) : (
           /* ── Guest state ── */
           <div className="flex items-center gap-1">

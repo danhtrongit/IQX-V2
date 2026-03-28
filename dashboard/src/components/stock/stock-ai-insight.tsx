@@ -714,6 +714,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
       .then((res) => {
         if (res?.data) {
           setInsight(res.data)
+          setSelectedLayer("decision")
           setTimeout(() => setLayersVisible(true), 200)
         } else {
           setError(res?.message || "Không có dữ liệu AI Insight")
@@ -767,14 +768,12 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
 
   const { initialNodes, initialEdges } = useMemo(() => {
     const keys = [...LAYERS_ORDER]
-    // Positions: L1 top-left, L2 mid-left, L3 bottom-left, L4 bottom-right, L5 top-right
-    // Center node in the middle
     const positions: Record<string, { x: number; y: number }> = {
-      trend:     { x: 10,  y: 30 },
-      liquidity: { x: 10,  y: 215 },
-      moneyFlow: { x: 10,  y: 400 },
-      insider:   { x: 580, y: 30 },
-      news:      { x: 580, y: 300 },
+      trend:     { x: 20,  y: 20 },
+      liquidity: { x: 20,  y: 130 },
+      moneyFlow: { x: 20,  y: 240 },
+      insider:   { x: 20,  y: 350 },
+      news:      { x: 20,  y: 460 },
     }
 
     const nodes: Node[] = keys.map((key, i) => ({
@@ -794,7 +793,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     nodes.push({
       id: "decision",
       type: "decisionNode",
-      position: { x: 285, y: 160 },
+      position: { x: 300, y: 240 },
       data: {
         isActive: selectedLayer === "decision",
         isVisible: layersVisible,
@@ -880,29 +879,31 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
         <span className="text-[9px] text-muted-foreground">Click layer → xem dữ liệu đầu vào chi tiết</span>
       </div>
 
-      {/* React Flow */}
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        onNodeClick={(_event, node) => handleLayerClick(node.id)}
-        fitView
-        fitViewOptions={{ padding: 0.25 }}
-        proOptions={{ hideAttribution: true }}
-        panOnDrag={false}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        zoomOnDoubleClick={false}
-        preventScrolling={false}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        minZoom={0.8}
-        maxZoom={1.2}
-      >
-        <Background gap={20} size={1} color="hsl(var(--border) / 0.08)" />
-      </ReactFlow>
+      {/* React Flow Wrapper */}
+      <div className={`absolute top-0 left-0 bottom-0 transition-all duration-300 ${selectedLayer && insight ? "right-[400px]" : "right-0"}`}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          onNodeClick={(_event, node) => handleLayerClick(node.id)}
+          fitView
+          fitViewOptions={{ padding: 0.15 }}
+          proOptions={{ hideAttribution: true }}
+          panOnDrag={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          preventScrolling={false}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          minZoom={0.8}
+          maxZoom={1.2}
+        >
+          <Background gap={20} size={1} color="hsl(var(--border) / 0.08)" />
+        </ReactFlow>
+      </div>
 
       {/* Detail Panel */}
       <AnimatePresence>

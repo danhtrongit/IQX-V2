@@ -29,13 +29,13 @@ function DemoLayerNode({ data }: NodeProps) {
         <>
             <Handle type="source" position={Position.Right} className="!bg-transparent !border-0 !w-0 !h-0" />
             <Handle type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
-            <div style={{ width: 200, borderRadius: 12, border: `1px solid ${cfg.color}30`, background: `${cfg.color}08`, backdropFilter: 'blur(8px)', padding: '10px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <Icon size={14} color={cfg.color} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{cfg.label}</span>
-                    <span style={{ fontSize: 8, fontWeight: 800, color: cfg.color, marginLeft: 'auto', letterSpacing: 1 }}>{cfg.short}</span>
+            <div style={{ width: 220, borderRadius: 14, border: `1px solid ${cfg.color}30`, background: `${cfg.color}08`, backdropFilter: 'blur(8px)', padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Icon size={16} color={cfg.color} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{cfg.label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 800, color: cfg.color, marginLeft: 'auto', letterSpacing: 1 }}>{cfg.short}</span>
                 </div>
-                <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4, margin: 0 }}>{cfg.summary}</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4, margin: 0 }}>{cfg.summary}</p>
             </div>
         </>
     );
@@ -46,22 +46,23 @@ function DemoCenterNode({ }: NodeProps) {
         <>
             <Handle type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
             <div style={{
-                width: 220, borderRadius: 16, border: '2px solid rgba(0,168,232,0.3)',
-                background: 'linear-gradient(135deg, rgba(0,168,232,0.08), rgba(0,0,0,0.8))',
-                backdropFilter: 'blur(12px)', padding: '14px 16px', textAlign: 'center',
+                width: 280, borderRadius: 20, border: '2px solid rgba(0,168,232,0.4)',
+                background: 'linear-gradient(135deg, rgba(0,168,232,0.12), rgba(0,0,0,0.85))',
+                backdropFilter: 'blur(16px)', padding: '20px', textAlign: 'center',
+                boxShadow: '0 0 32px rgba(0,168,232,0.15)'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 6 }}>
-                    <Sparkles size={14} color="#00A8E8" />
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>IQX AI Insights</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+                    <Sparkles size={18} color="#00A8E8" />
+                    <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>IQX AI Insights</span>
                 </div>
-                <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, margin: '0 0 8px' }}>Tổng hợp phân tích</p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 8 }}>
-                    <span style={{ fontSize: 8, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#10b98120', color: '#10b981', border: '1px solid #10b98130' }}>Xu hướng Tăng</span>
-                    <span style={{ fontSize: 8, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: '#3b82f620', color: '#3b82f6', border: '1px solid #3b82f630' }}>Sức mạnh Mạnh</span>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 1.5, margin: '0 0 12px' }}>Phân tích tổng hợp 6 Lớp</p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: '#10b98120', color: '#10b981', border: '1px solid #10b98130' }}>Xu hướng Tăng</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: '#3b82f620', color: '#3b82f6', border: '1px solid #3b82f630' }}>Sức mạnh Tốt</span>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '6px 8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4, margin: 0 }}>
-                        ⚡ Giữ vị thế — Xu hướng tăng, thanh khoản tốt, khối ngoại hỗ trợ
+                <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5, margin: 0 }}>
+                        ⚡ Giữ vị thế — Cấu trúc giá tăng vững chắc, thanh khoản tốt. Được dòng tiền thông minh hỗ trợ mạnh mẽ.
                     </p>
                 </div>
             </div>
@@ -118,17 +119,17 @@ export default function HeroSection() {
         const keys = ['trend', 'liquidity', 'moneyFlow', 'insider', 'news'];
         const positions: Record<string, { x: number; y: number }> = {
             trend:     { x: 0, y: 10 },
-            liquidity: { x: 0, y: 110 },
-            moneyFlow: { x: 0, y: 210 },
-            insider:   { x: 460, y: 30 },
-            news:      { x: 460, y: 190 },
+            liquidity: { x: 0, y: 120 },
+            moneyFlow: { x: 0, y: 230 },
+            insider:   { x: 500, y: 30 },
+            news:      { x: 500, y: 210 },
         };
         const n: Node[] = keys.map((key) => ({
             id: key, type: 'demoLayer', position: positions[key],
             data: { layerKey: key }, draggable: false,
         }));
         n.push({
-            id: 'center', type: 'demoCenter', position: { x: 220, y: 90 },
+            id: 'center', type: 'demoCenter', position: { x: 230, y: 95 },
             data: {}, draggable: false,
         });
         const e: Edge[] = keys.map((key) => ({
@@ -199,19 +200,32 @@ export default function HeroSection() {
                     </div>
 
                     {/* Description below ReactFlow */}
-                    <div style={{ padding: '14px 0 0', textAlign: 'center' }}>
-                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, margin: '0 0 8px' }}>
-                            Hệ thống AI tổng hợp mọi tín hiệu quan trọng thành 6 lớp phân tích rõ ràng:
+                    <div style={{ padding: '24px 0 0', textAlign: 'center' }}>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: '0 0 16px' }}>
+                            Hệ thống AI tổng hợp mọi tín hiệu quan trọng thành 6 lớp phân tích:
                         </p>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            {['Xu hướng', 'Thanh khoản', 'Dòng tiền lớn', 'Sự kiện', 'Tin tức', 'Hành động & Kịch bản'].map((l, i) => (
-                                <span key={l} style={{
-                                    fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
-                                    background: i === 5 ? 'rgba(0,168,232,0.12)' : 'rgba(255,255,255,0.04)',
-                                    color: i === 5 ? '#00A8E8' : 'rgba(255,255,255,0.5)',
-                                    border: `1px solid ${i === 5 ? 'rgba(0,168,232,0.2)' : 'rgba(255,255,255,0.06)'}`,
-                                }}>{l}</span>
-                            ))}
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                            {[
+                                { label: 'Xu hướng', icon: TrendingUp, color: '#3b82f6' },
+                                { label: 'Thanh khoản', icon: Droplets, color: '#06b6d4' },
+                                { label: 'Dòng tiền lớn', icon: ArrowLeftRight, color: '#10b981' },
+                                { label: 'Sự kiện', icon: Users, color: '#f59e0b' },
+                                { label: 'Tin tức', icon: Newspaper, color: '#ec4899' },
+                                { label: 'Hành động & Kịch bản', icon: Sparkles, color: '#00A8E8' },
+                            ].map((l) => {
+                                const Icon = l.icon;
+                                return (
+                                <span key={l.label} style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                    fontSize: 11, fontWeight: 600, padding: '6px 14px', borderRadius: 100,
+                                    background: `${l.color}15`,
+                                    color: l.color,
+                                    border: `1px solid ${l.color}30`,
+                                }}>
+                                    <Icon size={12} />
+                                    {l.label}
+                                </span>
+                            )})}
                         </div>
                     </div>
                 </div>

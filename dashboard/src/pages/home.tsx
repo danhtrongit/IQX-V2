@@ -2,6 +2,7 @@ import { useSEO } from '@/hooks/use-seo'
 import HomeHeader from '@/components/home/HomeHeader'
 import HeroSection from '@/components/home/HeroSection'
 import CoreValuesSection from '@/components/home/CoreValuesSection'
+import AgentsOverviewSection from '@/components/home/AgentsOverviewSection'
 import InsightSection from '@/components/home/InsightSection'
 import PricingSection from '@/components/home/PricingSection'
 import ContactSection from '@/components/home/ContactSection'
@@ -21,6 +22,7 @@ export default function HomePage() {
             <main className="home-main">
                 <HeroSection />
                 <CoreValuesSection />
+                <AgentsOverviewSection />
                 <InsightSection />
                 <PricingSection />
                 <ContactSection />
@@ -41,15 +43,24 @@ export default function HomePage() {
                     width: 100%;
                 }
                 .home-main > section {
+                    min-height: auto;
+                    display: block;
+                    padding: 80px 0;
+                }
+                #hero {
                     min-height: 100vh;
+                    padding: 0;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                 }
                 @media (max-width: 900px) {
                     .home-main > section {
+                        padding: 60px 0;
+                    }
+                    #hero {
                         min-height: auto;
-                        display: block;
+                        padding: 100px 0 60px;
                     }
                 }
             `}</style>

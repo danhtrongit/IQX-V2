@@ -24,28 +24,7 @@ export default function InsightSection() {
             }} />
 
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                    <h2 style={{
-                        fontSize: 'clamp(32px, 4vw, 52px)',
-                        fontWeight: 700,
-                        color: '#00A8E8',
-                        marginBottom: '10px',
-                        fontStyle: 'italic',
-                        letterSpacing: '-0.5px',
-                    }}>
-                        Bắt nhịp thị trường, không bỏ lỡ tín hiệu
-                    </h2>
-                    <p style={{
-                        fontSize: '18px',
-                        color: 'rgba(255,255,255,0.6)',
-                        maxWidth: '700px',
-                        margin: '0 auto',
-                        lineHeight: 1.6,
-                    }}>
-                        AI tổng hợp dữ liệu đa nguồn và chắt lọc thành tín hiệu cô đọng: xu hướng và rủi ro.
-                    </p>
-                </div>
-
+                {/* Heading removed */}
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
