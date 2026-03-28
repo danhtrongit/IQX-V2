@@ -3,7 +3,6 @@ import HomeHeader from '@/components/home/HomeHeader'
 import HeroSection from '@/components/home/HeroSection'
 import CoreValuesSection from '@/components/home/CoreValuesSection'
 import AgentsOverviewSection from '@/components/home/AgentsOverviewSection'
-import InsightSection from '@/components/home/InsightSection'
 import PricingSection from '@/components/home/PricingSection'
 import ContactSection from '@/components/home/ContactSection'
 import FAQSection from '@/components/home/FAQSection'
@@ -23,7 +22,6 @@ export default function HomePage() {
                 <HeroSection />
                 <CoreValuesSection />
                 <AgentsOverviewSection />
-                <InsightSection />
                 <PricingSection />
                 <ContactSection />
                 <FAQSection />
