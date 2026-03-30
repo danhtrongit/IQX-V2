@@ -240,9 +240,9 @@ function LayerNode({ data }: NodeProps) {
             <span className="text-[12px] font-bold text-foreground">{cfg.label}</span>
           </div>
 
-          {/* Description — full text */}
+          {/* Description — full text clamped */}
           {description && (
-            <p className="text-[10px] text-foreground/75 leading-relaxed mb-2">{description}</p>
+            <p className="text-[10px] text-foreground/75 leading-relaxed mb-2 line-clamp-4">{description}</p>
           )}
 
           {/* Tags */}
@@ -770,10 +770,10 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     const keys = [...LAYERS_ORDER]
     const positions: Record<string, { x: number; y: number }> = {
       trend:     { x: 20,  y: 20 },
-      liquidity: { x: 20,  y: 130 },
-      moneyFlow: { x: 20,  y: 240 },
-      insider:   { x: 20,  y: 350 },
-      news:      { x: 20,  y: 460 },
+      liquidity: { x: 20,  y: 180 },
+      moneyFlow: { x: 20,  y: 340 },
+      insider:   { x: 20,  y: 500 },
+      news:      { x: 20,  y: 660 },
     }
 
     const nodes: Node[] = keys.map((key, i) => ({
@@ -793,7 +793,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     nodes.push({
       id: "decision",
       type: "decisionNode",
-      position: { x: 300, y: 240 },
+      position: { x: 320, y: 340 },
       data: {
         isActive: selectedLayer === "decision",
         isVisible: layersVisible,
