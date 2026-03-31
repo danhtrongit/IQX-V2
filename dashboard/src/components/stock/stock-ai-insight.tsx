@@ -130,7 +130,16 @@ function renderOutput(output: any): React.ReactNode {
             <span className="text-[10px] text-muted-foreground shrink-0 min-w-[100px] font-semibold">
               {key}:
             </span>
-            <span className="text-[11px] text-foreground/90 font-medium">{String(val)}</span>
+            <span className="text-[11px] text-foreground/90 font-medium leading-relaxed">
+              {String(val).includes('|') ? (
+                <>
+                  <span className="font-bold">{String(val).split('|')[0].trim()}</span> 
+                  <span className="text-muted-foreground"> - {String(val).split('|').slice(1).join('|').trim()}</span>
+                </>
+              ) : (
+                String(val)
+              )}
+            </span>
           </div>
         )
       })}
@@ -149,47 +158,30 @@ function LayerNode({ data }: NodeProps) {
   const animDelay = (data.animDelay as number) || 0
   const layerOutput = data.layerOutput as any
 
-  // Build full description from structured output (Vietnamese keys)
-  const description = useMemo(() => {
-    if (!layerOutput || typeof layerOutput !== "object") return ""
-    if (layerOutput.text) return layerOutput.text
-    const key = data.layerKey as string
-    if (key === "trend") {
-      const parts = [
-        layerOutput["Xu hướng"] || layerOutput.trend,
-        layerOutput["Trạng thái"] || layerOutput.state,
-        layerOutput["Ghi chú"] || layerOutput.note,
-      ].filter(Boolean)
-      return parts.join(". ")
-    }
-    if (key === "liquidity") {
-      return [
-        layerOutput["Thanh khoản"] || layerOutput.liquidity,
-        layerOutput["Cung - Cầu"] || layerOutput.supplyDemand,
-        layerOutput["Tác động"] || layerOutput.impact,
-      ].filter(Boolean).join(". ")
-    }
-    if (key === "moneyFlow") {
-      return [
-        layerOutput["Khối ngoại"] || layerOutput.foreign,
-        layerOutput["Tự doanh"] || layerOutput.proprietary,
-        layerOutput["Tác động"] || layerOutput.implication,
-      ].filter(Boolean).join(". ")
-    }
-    if (key === "insider") {
-      return [
-        layerOutput.insider,
-        layerOutput.impactLevel,
-      ].filter(Boolean).join(". ")
-    }
-    if (key === "news") {
-      return [
-        layerOutput["Tổng quan"] || layerOutput.overview,
-        layerOutput["Tác động"] || layerOutput.implication,
-      ].filter(Boolean).join(". ")
-    }
-    return Object.values(layerOutput).filter(v => typeof v === "string").join(". ")
-  }, [layerOutput, data.layerKey])
+  // Render layernode outer summary cleanly with just keywords
+  const renderLayerSummary = () => {
+    if (!layerOutput || typeof layerOutput !== "object") return null;
+    if (layerOutput.text) return <p className="text-[12px] text-foreground/80 leading-relaxed mb-3 line-clamp-4">{layerOutput.text}</p>;
+
+    const keysToIgnore = ["Ghi chú", "Tổng quan"];
+    const entries = Object.entries(layerOutput).filter(([k]) => !keysToIgnore.includes(k) && k !== "text" && !Array.isArray(layerOutput[k]));
+
+    return (
+      <div className="flex flex-col gap-1.5 mb-3">
+        {entries.map(([k, v]) => {
+          const shortVal = String(v).split("|")[0].trim();
+          return (
+            <div key={k} className="flex justify-between items-start gap-2">
+              <span className="text-[11px] text-muted-foreground shrink-0">{k}:</span>
+              <span className="text-[12px] font-semibold text-right text-foreground/90 leading-tight">
+                {shortVal}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    );
+  };
 
   // Extract tags for trend layer (supports both old English + new Vietnamese keys)
   const tags = useMemo(() => {
@@ -240,10 +232,8 @@ function LayerNode({ data }: NodeProps) {
             <span className="text-[15px] font-bold text-foreground">{cfg.label}</span>
           </div>
 
-          {/* Description — full text clamped */}
-          {description && (
-            <p className="text-[12px] text-foreground/80 leading-relaxed mb-3 line-clamp-4">{description}</p>
-          )}
+          {/* Clean Key-Value Summary inside Node */}
+          {renderLayerSummary()}
 
           {/* Tags */}
           {tags.length > 0 && (

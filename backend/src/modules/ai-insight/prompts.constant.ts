@@ -185,38 +185,38 @@ Logic: Bias (L1+L3) → Execution (L2) → Nội bộ (L4) → Tin tức (L5).
 Hành động: Mua / Giữ / Quan sát / Giảm tỷ trọng.
 Không tạo mốc mới, chỉ dùng S1/R1 từ L1.
 
-OUTPUT JSON (chỉ trả JSON, KHÔNG markdown):
+OUTPUT JSON (chỉ trả JSON, KHÔNG markdown). BẮT BUỘC dùng định dạng "Từ khoá ngắn gọn | 1 câu diễn giải chi tiết" cho mọi field có phân loại:
 {
   "L1": {
-    "Xu hướng": "Tăng/Giảm/Đi ngang",
-    "Trạng thái": "Mạnh/Giằng co/Yếu",
-    "Hỗ trợ": "Mức giá S1",
-    "Kháng cự": "Mức giá R1",
-    "Ghi chú": "Lý do ngắn gọn (nếu cần)"
+    "Xu hướng": "Tăng/Giảm/Đi ngang | Mô tả diễn biến giá ngắn gọn",
+    "Trạng thái": "Mạnh/Giằng co/Yếu | Mô tả sức mạnh hiện tại",
+    "Hỗ trợ": "Mức giá S1 | Đánh giá độ tin cậy",
+    "Kháng cự": "Mức giá R1 | Đánh giá độ tin cậy",
+    "Ghi chú": "Lý do bổ sung (nếu cần)"
   },
   "L2": {
-    "Thanh khoản": "Cải thiện/Bình thường/Suy yếu",
-    "Cung - Cầu": "Kẹt lệnh/Chưa thành GD/Cơ hội thuận lợi",
-    "Tác động": "Tích cực/Tiêu cực/Trung tính"
+    "Thanh khoản": "Cải thiện/Bình thường/Suy yếu | 1 câu diễn giải dòng tiền",
+    "Cung - Cầu": "Kẹt lệnh/Chưa thành GD/Cơ hội thuận lợi | 1 câu diễn giải kịch bản",
+    "Tác động": "Tích cực/Tiêu cực/Trung tính | Tác động khi vào/ra vị thế"
   },
   "L3": {
-    "Khối ngoại": "Mua ròng/Bán ròng/Thất thường",
-    "Tự doanh": "Mua ròng/Bán ròng/Thất thường",
-    "Tác động": "Ủng hộ xu hướng/Cảnh báo nhiễu/Trung tính"
+    "Khối ngoại": "Mua ròng/Bán ròng/Thất thường | 1 câu diễn giải cường độ",
+    "Tự doanh": "Mua ròng/Bán ròng/Thất thường | 1 câu diễn giải cường độ",
+    "Tác động": "Ủng hộ xu hướng/Cảnh báo nhiễu/Trung tính | 1 câu hàm ý tổng hợp"
   },
   "L4": {
-    "Giao dịch nội bộ": "Mua chủ đạo/Bán chủ đạo/Lẫn lộn/Không có",
-    "Tác động": "Hỗ trợ nhẹ/Tăng thận trọng/Trung tính"
+    "Giao dịch nội bộ": "Mua chủ đạo/Bán chủ đạo/Lẫn lộn/Không có | 1 câu nhận xét diễn biến",
+    "Tác động": "Hỗ trợ nhẹ/Tăng thận trọng/Trung tính | Mức độ rủi ro"
   },
   "L5": {
-    "Tin tức": "Tích cực/Tiêu cực/Trung tính/Không rõ",
-    "Tác động": "Hỗ trợ tâm lý/Gây áp lực/Tăng biến động/Chờ xác nhận",
+    "Tin tức": "Tích cực/Tiêu cực/Trung tính/Không rõ | 1 câu tổng hợp",
+    "Tác động": "Hỗ trợ tâm lý/Gây áp lực/Tăng biến động/Chờ xác nhận | Chi tiết ảnh hưởng",
     "Ghi chú": "Danh sách tin vắn gọn (nếu có)"
   },
   "L6": {
-    "Hành động chính": "Mua/Giữ/Quan sát/Giảm tỷ trọng",
-    "Kịch bản thuận lợi": "Điều kiện vượt R1 ngắn gọn",
-    "Kịch bản bất lợi": "Điều kiện thủng S1 ngắn gọn",
-    "Kịch bản đi ngang": "Rủi ro chính"
+    "Hành động chính": "Mua/Giữ/Quan sát/Giảm tỷ trọng | Lý do ngắn gọn",
+    "Kịch bản thuận lợi": "Mô tả | Điều kiện bứt phá",
+    "Kịch bản bất lợi": "Mô tả | Điều kiện suy yếu",
+    "Kịch bản đi ngang": "Mô tả | Rủi ro chính"
   }
 }`;
