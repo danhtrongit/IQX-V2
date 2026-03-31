@@ -61,9 +61,14 @@ export class AiInsightService {
     try {
       const userInput = this.buildCombinedInput(data);
       const raw = await this.chatCompletion(COMBINED_PROMPT, userInput);
+      this.logger.debug(`AI raw response (first 300 chars): ${raw.slice(0, 300)}`);
       allLayers = this.tryParseJson(raw);
       aiSuccess = !!allLayers.L1 && !allLayers.L1.error;
-      this.logger.log(`AI response parsed successfully for ${upper}`);
+      if (!aiSuccess) {
+        this.logger.warn(`AI parse result missing L1. Keys found: ${Object.keys(allLayers).join(', ')}, Raw[:200]: ${raw.slice(0, 200)}`);
+      } else {
+        this.logger.log(`AI response parsed successfully for ${upper}`);
+      }
     } catch (err: any) {
       this.logger.error(`AI analysis failed: ${err.message}`);
       allLayers = {
@@ -305,16 +310,23 @@ export class AiInsightService {
 
   private tryParseJson(raw: string): any {
     try {
-      // Strip markdown code fences if present
-      let cleaned = raw;
-      if (cleaned.startsWith('```')) {
-        cleaned = cleaned
-          .replace(/^```(?:json)?\s*/, '')
-          .replace(/\s*```$/, '');
+      let cleaned = raw.trim();
+
+      // Strip <think>...</think> reasoning tags (gpt-5.x / o-series models)
+      cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+      // Strip markdown code fences (```json ... ``` or ``` ... ```)
+      cleaned = cleaned.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
+
+      // Find the outermost JSON object if there's leading text
+      const jsonStart = cleaned.indexOf('{');
+      const jsonEnd = cleaned.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
       }
+
       return JSON.parse(cleaned);
     } catch {
-      // Return as plain text if JSON parse fails
       return { text: raw };
     }
   }
