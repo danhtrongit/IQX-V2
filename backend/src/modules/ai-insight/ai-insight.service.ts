@@ -138,10 +138,11 @@ export class AiInsightService {
         model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage },
+          { role: 'user', content: `QUAN TRỌNG: Chỉ trả về JSON hợp lệ, KHÔNG có text, KHÔNG có markdown. Bắt đầu bằng { và kết thúc bằng }\n\n${userMessage}` },
         ],
         temperature: 0.3,
         max_tokens: 65536,
+        response_format: { type: 'json_object' },
       }),
     });
 
