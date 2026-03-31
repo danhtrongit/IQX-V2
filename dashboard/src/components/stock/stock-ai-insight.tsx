@@ -127,19 +127,10 @@ function renderOutput(output: any): React.ReactNode {
         }
         return (
           <div key={key} className="flex gap-2">
-            <span className="text-[10px] text-muted-foreground shrink-0 min-w-[100px] font-semibold">
+            <span className="text-[10px] text-muted-foreground shrink-0 min-w-[80px] font-semibold">
               {key}:
             </span>
-            <span className="text-[11px] text-foreground/90 font-medium leading-relaxed">
-              {String(val).includes('|') ? (
-                <>
-                  <span className="font-bold">{String(val).split('|')[0].trim()}</span> 
-                  <span className="text-muted-foreground"> - {String(val).split('|').slice(1).join('|').trim()}</span>
-                </>
-              ) : (
-                String(val)
-              )}
-            </span>
+            <span className="text-[11px] text-foreground/90">{String(val)}</span>
           </div>
         )
       })}
@@ -148,6 +139,16 @@ function renderOutput(output: any): React.ReactNode {
 }
 
 // ── Custom Nodes ──
+
+function getValueColor(value: string): string {
+  const v = value.toLowerCase()
+  if (v.includes("tăng") || v.includes("mua") || v.includes("cải thiện") || v.includes("tích cực") || v.includes("hỗ trợ") || v.includes("thuận lợi")) return "text-emerald-400"
+  if (v.includes("giảm") || v.includes("bán") || v.includes("suy yếu") || v.includes("tiêu cực") || v.includes("áp lực") || v.includes("thận trọng")) return "text-red-400"
+  if (v.includes("ngang") || v.includes("giằng co") || v.includes("thất thường") || v.includes("trái chiều") || v.includes("trung tính") || v.includes("lẫn lộn")) return "text-amber-400"
+  if (v.includes("mạnh")) return "text-blue-400"
+  if (v.includes("yếu")) return "text-slate-400"
+  return "text-foreground"
+}
 
 function LayerNode({ data }: NodeProps) {
   const cfg = LAYER_CONFIG[data.layerKey as string]
@@ -158,50 +159,54 @@ function LayerNode({ data }: NodeProps) {
   const animDelay = (data.animDelay as number) || 0
   const layerOutput = data.layerOutput as any
 
-  // Render layernode outer summary cleanly with just keywords
-  const renderLayerSummary = () => {
-    if (!layerOutput || typeof layerOutput !== "object") return null;
-    if (layerOutput.text) return <p className="text-[12px] text-foreground/80 leading-relaxed mb-3 line-clamp-4">{layerOutput.text}</p>;
+  // Build compact summary items from structured output
+  const summaryItems = useMemo(() => {
+    if (!layerOutput || typeof layerOutput !== "object" || layerOutput.error) return []
 
-    const keysToIgnore = ["Ghi chú", "Tổng quan"];
-    const entries = Object.entries(layerOutput).filter(([k]) => !keysToIgnore.includes(k) && k !== "text" && !Array.isArray(layerOutput[k]));
-
-    return (
-      <div className="flex flex-col gap-1.5 mb-3">
-        {entries.map(([k, v]) => {
-          const shortVal = String(v).split("|")[0].trim();
-          return (
-            <div key={k} className="flex justify-between items-start gap-2">
-              <span className="text-[11px] text-muted-foreground shrink-0">{k}:</span>
-              <span className="text-[12px] font-semibold text-right text-foreground/90 leading-tight">
-                {shortVal}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-    );
-  };
-
-  // Extract tags for trend layer (supports both old English + new Vietnamese keys)
-  const tags = useMemo(() => {
-    if (!layerOutput || data.layerKey !== "trend") return []
-    const result: { label: string; color: string }[] = []
-    const trendVal = layerOutput["Xu hướng"] || layerOutput.trend
-    if (trendVal) {
-      const t = String(trendVal).toLowerCase()
-      if (t.includes("tăng")) result.push({ label: "Tăng", color: "#10b981" })
-      else if (t.includes("giảm")) result.push({ label: "Giảm", color: "#ef4444" })
-      else result.push({ label: "Đi ngang", color: "#f59e0b" })
+    const short = (val: any): string => {
+      if (!val) return "—"
+      return String(val).trim().split(/[,.]/)[0].trim()
     }
-    const stateVal = layerOutput["Trạng thái"] || layerOutput.state
-    if (stateVal) {
-      const s = String(stateVal).toLowerCase()
-      if (s.includes("mạnh")) result.push({ label: "Mạnh", color: "#3b82f6" })
-      else if (s.includes("yếu")) result.push({ label: "Yếu", color: "#94a3b8" })
-      else result.push({ label: "Giằng co", color: "#f59e0b" })
+    const num = (val: any): string => {
+      if (!val) return "—"
+      const m = String(val).match(/([\d,.]+)/)
+      return m ? m[1] : short(val)
     }
-    return result
+
+    const key = data.layerKey as string
+    switch (key) {
+      case "trend":
+        return [
+          { label: "Xu hướng", value: short(layerOutput["Xu hướng"] || layerOutput.trend) },
+          { label: "Trạng thái", value: short(layerOutput["Trạng thái"] || layerOutput.state) },
+          { label: "Hỗ trợ", value: num(layerOutput["Hỗ trợ"] || layerOutput.support) },
+          { label: "Kháng cự", value: num(layerOutput["Kháng cự"] || layerOutput.resistance) },
+        ]
+      case "liquidity":
+        return [
+          { label: "Thanh khoản", value: short(layerOutput["Thanh khoản"] || layerOutput.liquidity) },
+          { label: "Cung - Cầu", value: short(layerOutput["Cung - Cầu"] || layerOutput.supplyDemand) },
+          { label: "Tác động", value: short(layerOutput["Tác động"] || layerOutput.impact) },
+        ]
+      case "moneyFlow":
+        return [
+          { label: "Khối ngoại", value: short(layerOutput["Khối ngoại"] || layerOutput.foreign) },
+          { label: "Tự doanh", value: short(layerOutput["Tự doanh"] || layerOutput.proprietary) },
+          { label: "Tác động", value: short(layerOutput["Tác động"] || layerOutput.implication) },
+        ]
+      case "insider":
+        return [
+          { label: "Nội bộ", value: short(layerOutput["Nội bộ"] || layerOutput.insider) },
+          { label: "Mức cảnh báo", value: short(layerOutput["Mức cảnh báo"] || layerOutput.impactLevel) },
+        ]
+      case "news":
+        return [
+          { label: "Tổng quan", value: short(layerOutput["Tổng quan"] || layerOutput.overview) },
+          { label: "Tác động", value: short(layerOutput["Tác động"] || layerOutput.implication) },
+        ]
+      default:
+        return []
+    }
   }, [layerOutput, data.layerKey])
 
   return (
@@ -224,30 +229,30 @@ function LayerNode({ data }: NodeProps) {
           }}
         >
           {/* Header */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em]" style={{ color: cfg.color }}>{cfg.shortLabel === "L1" ? "TREND" : cfg.shortLabel === "L2" ? "LIQUIDITY" : cfg.shortLabel === "L3" ? "INSTITUTIONAL" : cfg.shortLabel === "L4" ? "INSIDER" : "RULES"}</span>
-          </div>
-          <div className="flex items-center gap-2 mb-3">
-            <Icon className="size-5 shrink-0" style={{ color: cfg.color }} />
-            <span className="text-[15px] font-bold text-foreground">{cfg.label}</span>
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="size-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${cfg.color}15` }}>
+              <Icon className="size-4" style={{ color: cfg.color }} />
+            </div>
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-[0.15em] block" style={{ color: cfg.color }}>{cfg.shortLabel}</span>
+              <span className="text-[13px] font-bold text-foreground leading-tight">{cfg.label}</span>
+            </div>
           </div>
 
-          {/* Clean Key-Value Summary inside Node */}
-          {renderLayerSummary()}
-
-          {/* Tags */}
-          {tags.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap">
-              {tags.map((tag) => (
-                <span
-                  key={tag.label}
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
-                >
-                  {tag.label}
-                </span>
+          {/* Compact Summary Items */}
+          {summaryItems.length > 0 ? (
+            <div className="space-y-1">
+              {summaryItems.map((item) => (
+                <div key={item.label} className="flex items-center justify-between py-0.5 border-b border-border/5 last:border-0">
+                  <span className="text-[10px] text-muted-foreground/70">{item.label}</span>
+                  <span className={`text-[11px] font-bold tabular-nums ${getValueColor(item.value)}`}>
+                    {item.value}
+                  </span>
+                </div>
               ))}
             </div>
+          ) : (
+            <p className="text-[10px] text-muted-foreground/50 italic">Đang chờ dữ liệu...</p>
           )}
         </div>
       </div>
