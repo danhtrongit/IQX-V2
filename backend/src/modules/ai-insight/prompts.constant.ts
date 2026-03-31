@@ -188,40 +188,35 @@ Không tạo mốc mới, chỉ dùng S1/R1 từ L1.
 OUTPUT JSON (chỉ trả JSON, KHÔNG markdown):
 {
   "L1": {
-    "Xu hướng": "Tăng/Giảm/Đi ngang + mô tả 1 câu",
-    "Trạng thái": "Mạnh/Giằng co/Yếu + mô tả 1 câu",
-    "Hỗ trợ": "S1 + mức mạnh/yếu",
-    "Kháng cự": "R1 + mức mạnh/yếu",
-    "Ghi chú": "Ghi chú nếu có"
+    "Xu hướng": "Tăng/Giảm/Đi ngang",
+    "Trạng thái": "Mạnh/Giằng co/Yếu",
+    "Hỗ trợ": "Mức giá S1",
+    "Kháng cự": "Mức giá R1",
+    "Ghi chú": "Lý do ngắn gọn (nếu cần)"
   },
   "L2": {
-    "Thanh khoản": "cải thiện/bình thường/suy yếu + 1 câu diễn giải",
-    "Cung - Cầu": "kịch bản phù hợp + 1 câu",
-    "Tác động": "tác động khi vào/ra vị thế"
+    "Thanh khoản": "Cải thiện/Bình thường/Suy yếu",
+    "Cung - Cầu": "Kẹt lệnh/Chưa thành GD/Cơ hội thuận lợi",
+    "Tác động": "Tích cực/Tiêu cực/Trung tính"
   },
   "L3": {
-    "Khối ngoại": "phân loại + 1 câu ngắn gọn",
-    "Tự doanh": "phân loại + 1 câu ngắn gọn",
-    "Tác động": "hàm ý tổng hợp"
+    "Khối ngoại": "Mua ròng/Bán ròng/Thất thường",
+    "Tự doanh": "Mua ròng/Bán ròng/Thất thường",
+    "Tác động": "Ủng hộ xu hướng/Cảnh báo nhiễu/Trung tính"
   },
   "L4": {
-    "insider": "xu hướng mua/bán + 1 câu",
-    "impactLevel": "trung tính/tăng thận trọng/hỗ trợ nhẹ"
+    "Giao dịch nội bộ": "Mua chủ đạo/Bán chủ đạo/Lẫn lộn/Không có",
+    "Tác động": "Hỗ trợ nhẹ/Tăng thận trọng/Trung tính"
   },
   "L5": {
-    "Tin tức": ["tin 1 tóm tắt | Tích cực", "tin 2 tóm tắt | Trung tính"],
-    "Tổng quan": "nghiêng tích cực/nghiêng tiêu cực/trái chiều/trung tính",
-    "Tác động": "hỗ trợ tâm lý/gây áp lực/tăng biến động/cần chờ xác nhận"
+    "Tin tức": "Tích cực/Tiêu cực/Trung tính/Không rõ",
+    "Tác động": "Hỗ trợ tâm lý/Gây áp lực/Tăng biến động/Chờ xác nhận",
+    "Ghi chú": "Danh sách tin vắn gọn (nếu có)"
   },
   "L6": {
-    "Tổng quan": "tóm tắt tổng quan 1-2 câu",
-    "Thanh khoản": "nhận xét thanh khoản",
-    "Dòng tiền": "nhận xét dòng tiền",
-    "Giao dịch nội bộ": "nhận xét nội bộ",
-    "Tin tức": "nhận xét tin tức",
-    "Hành động chính": "Mua/Giữ/Quan sát/Giảm tỷ trọng + lý do ngắn",
-    "Kịch bản thuận lợi": "kịch bản tốt + điều kiện",
-    "Kịch bản bất lợi": "kịch bản xấu + điều kiện",
-    "Kịch bản đi ngang": "kịch bản đi ngang + rủi ro chính"
+    "Hành động chính": "Mua/Giữ/Quan sát/Giảm tỷ trọng",
+    "Kịch bản thuận lợi": "Điều kiện vượt R1 ngắn gọn",
+    "Kịch bản bất lợi": "Điều kiện thủng S1 ngắn gọn",
+    "Kịch bản đi ngang": "Rủi ro chính"
   }
 }`;

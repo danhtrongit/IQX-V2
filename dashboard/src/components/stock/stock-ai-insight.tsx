@@ -127,10 +127,10 @@ function renderOutput(output: any): React.ReactNode {
         }
         return (
           <div key={key} className="flex gap-2">
-            <span className="text-[10px] text-muted-foreground shrink-0 min-w-[80px] font-semibold">
+            <span className="text-[10px] text-muted-foreground shrink-0 min-w-[100px] font-semibold">
               {key}:
             </span>
-            <span className="text-[11px] text-foreground/90">{String(val)}</span>
+            <span className="text-[11px] text-foreground/90 font-medium">{String(val)}</span>
           </div>
         )
       })}
@@ -222,7 +222,7 @@ function LayerNode({ data }: NodeProps) {
       <Handle type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
       <div className={`cursor-pointer transition-all duration-300 ${isActive ? "scale-[1.03]" : "hover:scale-[1.02]"}`}>
         <div
-          className="w-[230px] rounded-xl border backdrop-blur-sm p-3"
+          className="w-[280px] rounded-2xl border backdrop-blur-sm p-4"
           style={{
             backgroundColor: `${cfg.color}06`,
             borderColor: isActive ? cfg.color : `${cfg.color}25`,
@@ -232,17 +232,17 @@ function LayerNode({ data }: NodeProps) {
           }}
         >
           {/* Header */}
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-[8px] font-black uppercase tracking-[0.15em]" style={{ color: cfg.color }}>{cfg.shortLabel === "L1" ? "TREND" : cfg.shortLabel === "L2" ? "LIQUIDITY" : cfg.shortLabel === "L3" ? "INSTITUTIONAL" : cfg.shortLabel === "L4" ? "INSIDER" : "RULES"}</span>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.15em]" style={{ color: cfg.color }}>{cfg.shortLabel === "L1" ? "TREND" : cfg.shortLabel === "L2" ? "LIQUIDITY" : cfg.shortLabel === "L3" ? "INSTITUTIONAL" : cfg.shortLabel === "L4" ? "INSIDER" : "RULES"}</span>
           </div>
-          <div className="flex items-center gap-2 mb-2">
-            <Icon className="size-4 shrink-0" style={{ color: cfg.color }} />
-            <span className="text-[12px] font-bold text-foreground">{cfg.label}</span>
+          <div className="flex items-center gap-2 mb-3">
+            <Icon className="size-5 shrink-0" style={{ color: cfg.color }} />
+            <span className="text-[15px] font-bold text-foreground">{cfg.label}</span>
           </div>
 
           {/* Description — full text clamped */}
           {description && (
-            <p className="text-[10px] text-foreground/75 leading-relaxed mb-2 line-clamp-4">{description}</p>
+            <p className="text-[12px] text-foreground/80 leading-relaxed mb-3 line-clamp-4">{description}</p>
           )}
 
           {/* Tags */}
@@ -251,7 +251,7 @@ function LayerNode({ data }: NodeProps) {
               {tags.map((tag) => (
                 <span
                   key={tag.label}
-                  className="text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
                   style={{ backgroundColor: `${tag.color}20`, color: tag.color }}
                 >
                   {tag.label}
@@ -288,7 +288,7 @@ function DecisionNode({ data }: NodeProps) {
       <Handle type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
       <div className={`cursor-pointer transition-all duration-300 ${isActive ? "scale-105" : "hover:scale-[1.02]"}`}>
         <div
-          className="w-[260px] rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/8 via-background/90 to-background/80 backdrop-blur-sm p-4"
+          className="w-[320px] rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/8 via-background/90 to-background/80 backdrop-blur-sm p-5"
           style={{
             boxShadow: isActive
               ? "0 0 28px hsl(var(--primary) / 0.25), 0 8px 24px rgba(0,0,0,0.3)"
@@ -296,11 +296,11 @@ function DecisionNode({ data }: NodeProps) {
           }}
         >
           {/* Title */}
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="size-4 text-primary" />
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Sparkles className="size-5 text-primary" />
             <div className="text-center">
-              <p className="text-[11px] font-bold text-foreground">IQX AI Insights</p>
-              <p className="text-[8px] text-muted-foreground uppercase tracking-widest">Tổng hợp phân tích</p>
+              <p className="text-[14px] font-bold text-foreground">IQX AI Insights</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Tổng hợp phân tích</p>
             </div>
           </div>
 
@@ -308,11 +308,11 @@ function DecisionNode({ data }: NodeProps) {
 
           {/* Trend + State tags */}
           {trendTags && trendTags.length > 0 && (
-            <div className="flex justify-center gap-1.5 mb-2">
+            <div className="flex justify-center gap-1.5 mb-3">
               {trendTags.map((tag) => (
                 <span
                   key={tag.label}
-                  className="text-[9px] font-semibold px-2.5 py-0.5 rounded-full"
+                  className="text-[11px] font-semibold px-3 py-1 rounded-full"
                   style={{ backgroundColor: `${tag.color}20`, color: tag.color, border: `1px solid ${tag.color}30` }}
                 >
                   {"Xu hướng " + tag.label.charAt(0).toUpperCase() + tag.label.slice(1)}
@@ -321,7 +321,7 @@ function DecisionNode({ data }: NodeProps) {
               {trendTags.slice(1, 2).map((tag) => (
                 <span
                   key={tag.label}
-                  className="text-[9px] font-semibold px-2.5 py-0.5 rounded-full"
+                  className="text-[11px] font-semibold px-3 py-1 rounded-full"
                   style={{ backgroundColor: `${tag.color}20`, color: tag.color, border: `1px solid ${tag.color}30` }}
                 >
                   {"Sức mạnh " + tag.label}
@@ -332,15 +332,15 @@ function DecisionNode({ data }: NodeProps) {
 
           {/* Summary */}
           {overview && (
-            <div className="bg-background/40 rounded-lg p-2 border border-border/15">
-              <p className="text-[10px] text-foreground/80 leading-relaxed text-center">
+            <div className="bg-background/40 rounded-lg p-3 border border-border/15">
+              <p className="text-[13px] text-foreground/80 leading-relaxed text-center">
                 ⚡ {overview}
               </p>
             </div>
           )}
 
           {/* Bottom hint */}
-          <p className="text-[8px] text-muted-foreground text-center mt-2">Click để xem chi tiết kịch bản</p>
+          <p className="text-[10px] text-muted-foreground text-center mt-3">Click để xem chi tiết kịch bản</p>
         </div>
       </div>
     </motion.div>
@@ -793,7 +793,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     nodes.push({
       id: "decision",
       type: "decisionNode",
-      position: { x: 320, y: 340 },
+      position: { x: 380, y: 320 },
       data: {
         isActive: selectedLayer === "decision",
         isVisible: layersVisible,
