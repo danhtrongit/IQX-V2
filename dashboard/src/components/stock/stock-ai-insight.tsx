@@ -764,11 +764,11 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
   const { initialNodes, initialEdges } = useMemo(() => {
     const keys = [...LAYERS_ORDER]
     const positions: Record<string, { x: number; y: number }> = {
-      trend:     { x: 20,  y: 20 },
-      liquidity: { x: 20,  y: 180 },
-      moneyFlow: { x: 20,  y: 340 },
-      insider:   { x: 20,  y: 500 },
-      news:      { x: 20,  y: 660 },
+      trend:     { x: 20,  y: 10 },
+      liquidity: { x: 20,  y: 185 },
+      moneyFlow: { x: 20,  y: 360 },
+      insider:   { x: 20,  y: 505 },
+      news:      { x: 20,  y: 630 },
     }
 
     const nodes: Node[] = keys.map((key, i) => ({
@@ -788,7 +788,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     nodes.push({
       id: "decision",
       type: "decisionNode",
-      position: { x: 380, y: 320 },
+      position: { x: 380, y: 280 },
       data: {
         isActive: selectedLayer === "decision",
         isVisible: layersVisible,
