@@ -164,87 +164,109 @@ export class AiInsightService {
     parts.push(`Mã: ${d.symbol}`);
 
     // L1 data — OHLCV & Precomputed
+    const ohlcv30 = d.ohlcv.slice(-30);
     const last10 = d.ohlcv.slice(-10);
     const last20 = d.ohlcv.slice(-20);
     const ma10 = last10.length ? last10.reduce((s, r) => s + r.close, 0) / last10.length : 0;
     const ma20 = last20.length ? last20.reduce((s, r) => s + r.close, 0) / last20.length : 0;
     const volMa10 = last10.length ? last10.reduce((s, r) => s + r.volume, 0) / last10.length : 0;
     const volMa20 = last20.length ? last20.reduce((s, r) => s + r.volume, 0) / last20.length : 0;
-    const prev5 = d.ohlcv.slice(-25, -20);
-    const ma20_5ago = prev5.length >= 5
-      ? d.ohlcv.slice(-25).slice(0, 20).reduce((s, r) => s + r.close, 0) / 20
-      : ma20;
-    const slopePct = ma20 ? ((ma20 - ma20_5ago) / ma20_5ago) * 100 : 0;
-    const ma20Slope = slopePct >= 0.3 ? 'đi lên' : slopePct <= -0.3 ? 'đi xuống' : 'phẳng';
     const latestClose = d.ohlcv.length ? d.ohlcv[d.ohlcv.length - 1].close : 0;
-    const priceVsMa20 = ma20 ? ((latestClose - ma20) / ma20) * 100 : 0;
-    const nearMa20 = Math.abs(priceVsMa20) <= 1.5;
+    const latestVolume = d.ohlcv.length ? d.ohlcv[d.ohlcv.length - 1].volume : 0;
 
     const realtimeStr = d.realtime
-      ? `Giá hiện tại: ${d.realtime.price}, Volume: ${d.realtime.volume}`
-      : `Giá đóng cửa gần nhất: ${latestClose.toFixed(2)}`;
+      ? `Realtime: Giá hiện tại (P0)=${d.realtime.price}, Volume hiện tại (V0)=${d.realtime.volume}`
+      : `Realtime (Chốt phiên mới nhất): P0=${latestClose.toFixed(2)}, V0=${latestVolume}`;
 
     parts.push(`\n## DỮ LIỆU CHO L1 (Xu hướng)`);
-    parts.push(realtimeStr);
-    parts.push(`MA10: ${ma10.toFixed(2)}, MA20: ${ma20.toFixed(2)}`);
-    parts.push(`VolMA10: ${Math.round(volMa10)}, VolMA20: ${Math.round(volMa20)}`);
-    parts.push(`Độ dốc MA20: ${ma20Slope} (${slopePct.toFixed(2)}%)`);
-    parts.push(`Khoảng cách giá-MA20: ${priceVsMa20.toFixed(2)}%`);
-    parts.push(`Giá quanh MA20: ${nearMa20 ? 'Có' : 'Không'}`);
-    const ohlcvStr = d.ohlcv.slice(-10).map(r => `${r.date}: O=${r.open} H=${r.high} L=${r.low} C=${r.close} V=${r.volume}`).join('\n');
-    parts.push(`OHLCV 10 phiên gần nhất:\n${ohlcvStr || 'Không có'}`);
+    parts.push(`${realtimeStr}. (Mẫu hình nến hiện tại: phân tích từ OHLCV)`);
+    parts.push(`MA: MA10=${ma10.toFixed(2)}, MA20=${ma20.toFixed(2)}`);
+    parts.push(`Vol_MA: VolMA10=${Math.round(volMa10)}, VolMA20=${Math.round(volMa20)}`);
+    const ohlcvStr = ohlcv30.map(r => `${r.date}: O=${r.open} H=${r.high} L=${r.low} C=${r.close} V=${r.volume}`).join('\n');
+    parts.push(`Lịch sử 30 phiên (OHLCV):\n${ohlcvStr}`);
 
     // L2 data — Supply/Demand
     parts.push(`\n## DỮ LIỆU CHO L2 (Thanh khoản)`);
     if (d.supplyDemand.length) {
-      const latest = d.supplyDemand[0];
-      parts.push(`Phiên gần nhất (${latest.date}): KL chưa khớp Mua=${latest.buyUnmatchedVolume}, Bán=${latest.sellUnmatchedVolume}, Lệnh Mua=${latest.buyTradeCount}, Bán=${latest.sellTradeCount}, Volume khớp=${latest.totalVolume}`);
-      parts.push(`TB30: Volume khớp=${Math.round(this.avg(d.supplyDemand, 'totalVolume'))}`);
+      const sd30 = d.supplyDemand.slice(0, 30);
+      const latest = sd30[0];
+      const datLenh = (latest.buyTradeVolume || 0) + (latest.sellTradeVolume || 0);
+      const chuaKhop = (latest.buyUnmatchedVolume || 0) + (latest.sellUnmatchedVolume || 0);
+      const khop = latest.totalVolume || 0;
+
+      const avgDatLenh = sd30.reduce((s, r) => s + ((r.buyTradeVolume || 0) + (r.sellTradeVolume || 0)), 0) / sd30.length;
+      const avgChuaKhop = sd30.reduce((s, r) => s + ((r.buyUnmatchedVolume || 0) + (r.sellUnmatchedVolume || 0)), 0) / sd30.length;
+      const avgKhop = sd30.reduce((s, r) => s + (r.totalVolume || 0), 0) / sd30.length;
+
+      const getLabel = (val: number, avg: number) => {
+        if (!avg) return 'không rõ';
+        const ratio = val / avg;
+        return ratio >= 1.3 ? 'cao' : ratio < 0.8 ? 'thấp' : 'bình thường';
+      };
+
+      parts.push(`Tổng KL đặt lệnh (mua+bán) mới nhất: ${datLenh} (Mức độ so với TB 30 phiên: ${getLabel(datLenh, avgDatLenh)})`);
+      parts.push(`KL chưa khớp (mua+bán) mới nhất: ${chuaKhop} (Mức độ so với TB 30 phiên: ${getLabel(chuaKhop, avgChuaKhop)})`);
+      parts.push(`Volume khớp lệnh mới nhất: ${khop} (Mức độ so với TB 30 phiên: ${getLabel(khop, avgKhop)})`);
     } else {
       parts.push('Không có dữ liệu cung cầu.');
     }
 
     // L3 data — Money Flow
     parts.push(`\n## DỮ LIỆU CHO L3 (Dòng tiền)`);
-    const priceChange = d.ohlcv.length >= 5
-      ? ((d.ohlcv[d.ohlcv.length - 1].close - d.ohlcv[d.ohlcv.length - 5].close) / d.ohlcv[d.ohlcv.length - 5].close * 100).toFixed(2)
-      : '0';
-    parts.push(`Hướng giá 5 phiên: ${priceChange}%`);
-    const ffSummary = this.flowSummary(d.foreignFlow, 'Nước ngoài');
-    const pfSummary = this.flowSummary(d.proprietaryFlow, 'Tự doanh');
-    parts.push(ffSummary);
-    parts.push(pfSummary);
+    parts.push(`Dữ liệu nền: OHLCV 30 phiên (như trên L1) + Volume/VolMA hiện tại để chuẩn hoá mức độ.`);
+    
+    parts.push(`\nNước ngoài (30 phiên gần nhất):`);
+    parts.push(this.formatFlowData(d.foreignFlow));
+
+    parts.push(`\nTự doanh (30 phiên gần nhất):`);
+    parts.push(this.formatFlowData(d.proprietaryFlow));
 
     // L4 data — Insider
     parts.push(`\n## DỮ LIỆU CHO L4 (Nội bộ)`);
     if (d.insiderTransactions.length) {
-      const buys = d.insiderTransactions.filter(r => r.action?.includes('Mua') || r.action?.includes('mua'));
-      const sells = d.insiderTransactions.filter(r => r.action?.includes('Bán') || r.action?.includes('bán'));
-      parts.push(`Tổng: ${d.insiderTransactions.length} thông báo (Mua: ${buys.length}, Bán: ${sells.length})`);
-      const recent = d.insiderTransactions.slice(0, 5).map(r => `${r.action} | KL=${r.shareExecuted || r.shareRegistered} | ${r.startDate?.split('T')[0] || ''}`).join('\n');
-      parts.push(`5 gần nhất:\n${recent}`);
+      const ins30 = d.insiderTransactions.slice(0, 30);
+      parts.push(`${ins30.length} thông báo gần nhất:`);
+      const recent = ins30.map(r => 
+        `${r.publicDate?.split('T')[0] || r.startDate?.split('T')[0] || ''} | Hành động: ${r.action} ` +
+        `| Nắm giữ trước: ${r.shareBefore || 0} ` +
+        `| KL thực hiện/đăng ký: ${r.shareExecuted || r.shareRegistered || 0} ` +
+        `| Nắm giữ còn lại: ${r.shareAfter || 0}`
+      ).join('\n');
+      parts.push(recent);
     } else {
-      parts.push('Không có GD nội bộ.');
+      parts.push('Không có giao dịch nội bộ trong dữ liệu trả về.');
     }
 
     // L5 data — News
     parts.push(`\n## DỮ LIỆU CHO L5 (Tin tức)`);
     if (d.tickerScore) {
-      parts.push(`Điểm AI: ${d.tickerScore.score}/10, Tích cực=${d.tickerScore.countPositive}, Tiêu cực=${d.tickerScore.countNegative}`);
+      parts.push(`Điểm sentiment: ${d.tickerScore.score}/10 (Tích cực: ${d.tickerScore.countPositive}, Tiêu cực: ${d.tickerScore.countNegative})`);
     }
     const newsStr = d.news.map((n: any, i: number) => `${i + 1}. ${n.title} (${n.sourceName || ''}, ${n.updatedAt?.split(' ')[0] || ''})`).join('\n');
     parts.push(`Tin tức (${d.news.length} tin):\n${newsStr || 'Không có'}`);
 
-    parts.push(`\nPhân tích tất cả 6 lớp, trả 1 JSON duy nhất theo format đã yêu cầu.`);
+    parts.push(`\nPhân tích tất cả 6 lớp, nhớ KHÔNG trả về markdown, chỉ return 1 JSON object hợp lệ chứa đầy đủ {"L1": ..., "L2": ..., "L6": ...}`);
     return parts.join('\n');
   }
 
-  private flowSummary(arr: any[], label: string): string {
-    if (!arr.length) return `${label}: Không có dữ liệu`;
-    const buyDays = arr.filter(r => (r.matchNetVolume ?? r.totalNetVolume ?? 0) > 0).length;
-    const totalNet = arr.reduce((s, r) => s + (r.totalNetVolume ?? r.matchNetVolume ?? 0), 0);
-    const detail = arr.slice(0, 5).map(r => `${r.date}: ròng=${r.matchNetVolume ?? r.totalNetVolume ?? 0}`).join(', ');
-    return `${label}: ${buyDays}/${arr.length} phiên mua ròng, tổng ròng=${totalNet > 0 ? '+' : ''}${totalNet}. Gần nhất: ${detail}`;  
+  // helper method
+  private formatFlowData(flow: any[]): string {
+    if (!flow || !flow.length) return 'Không có dữ liệu.';
+    const f30 = flow.slice(0, 30);
+    const latest = f30[0];
+    
+    const sumNet = f30.reduce((s, r) => s + (r.totalNetVolume || 0), 0);
+    const sumNetVal = f30.reduce((s, r) => s + (r.totalNetValue || 0), 0);
+    const sumMatch = f30.reduce((s, r) => s + (r.matchNetVolume || 0), 0);
+    const sumMatchVal = f30.reduce((s, r) => s + (r.matchNetValue || 0), 0);
+    const sumDeal = f30.reduce((s, r) => s + (r.dealNetVolume || 0), 0);
+    const sumDealVal = f30.reduce((s, r) => s + (r.dealNetValue || 0), 0);
+
+    const ratio = (latest.totalVolume || 0) > 0 ? (latest.totalNetVolume || 0) / latest.totalVolume : 0;
+
+    return `- KL ròng vs GT ròng (Mới nhất): Tổng= ${latest.totalNetVolume || 0} (${latest.totalNetValue || 0}đ) | Đặt lệnh(match)= ${latest.matchNetVolume || 0} (${latest.matchNetValue || 0}đ) | Thoả thuận(deal)= ${latest.dealNetVolume || 0} (${latest.dealNetValue || 0}đ)
+- Lũy kế 30 phiên: Tổng= ${sumNet} (${sumNetVal}đ) | Đặt lệnh= ${sumMatch} (${sumMatchVal}đ) | Thoả thuận= ${sumDeal} (${sumDealVal}đ)
+- KL ròng / volume hiện tại: ${(ratio * 100).toFixed(2)}%`;
   }
 
 
