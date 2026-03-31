@@ -386,7 +386,7 @@ export function Header() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-7">
+            <Button variant="ghost" size="icon" className="size-7" onClick={() => navigate("/cai-dat")}>
               <Settings className="size-3.5" />
             </Button>
           </TooltipTrigger>
@@ -458,10 +458,10 @@ export function Header() {
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/cai-dat")}>
                 Tài khoản
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/nang-cap")}>
                 <Crown className="size-3.5 mr-2 text-amber-500" />
                 Gói dịch vụ
                 <Badge
@@ -485,6 +485,14 @@ export function Header() {
         ) : (
           /* ── Guest state ── */
           <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              onClick={() => navigate("/nang-cap")}
+              className="h-7 text-[10px] gap-1 px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold tracking-wide shadow-sm border-none"
+            >
+              <Crown className="size-3" />
+              Premium
+            </Button>
             <Button
               variant="ghost"
               size="sm"

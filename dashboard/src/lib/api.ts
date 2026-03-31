@@ -161,3 +161,61 @@ export const arenaApi = {
   getPortfolio: () =>
     api.get("arena/portfolio").json<{ data: any[] }>(),
 }
+
+// ── Users API ──
+
+export interface UserProfile {
+  id: string
+  email: string
+  fullName: string | null
+  phone: string | null
+  role: string
+  isActive: boolean
+  premiumExpiresAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UpdateProfilePayload {
+  fullName?: string
+  phone?: string
+  password?: string
+}
+
+export const usersApi = {
+  getProfile: () =>
+    api.get("users/profile").json<{ message: string; data: UserProfile }>(),
+
+  updateProfile: (payload: UpdateProfilePayload) =>
+    api.patch("users/profile", { json: payload }).json<{ message: string; data: UserProfile }>(),
+}
+
+// ── Payments API ──
+
+export interface PlanInfo {
+  plan: string
+  label: string
+  months: number
+  price: number
+  currency: string
+}
+
+export interface CheckoutData {
+  paymentId: string
+  checkoutUrl: string
+  fields: Record<string, string>
+  plan: string
+  planLabel: string
+  amount: number
+}
+
+export const paymentsApi = {
+  getPlans: () =>
+    api.get("payments/plans").json<{ message: string; data: PlanInfo[] }>(),
+
+  createCheckout: (plan: string) =>
+    api.post("payments/checkout", { json: { plan } }).json<{ message: string; data: CheckoutData }>(),
+
+  getHistory: (page = 1, limit = 10) =>
+    api.get("payments/history", { searchParams: { page, limit } }).json<{ message: string; data: { items: any[]; total: number; page: number; limit: number; totalPages: number } }>(),
+}

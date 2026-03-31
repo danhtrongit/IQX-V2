@@ -78,9 +78,9 @@ export class PaymentsService {
       order_description: description,
       order_invoice_number: invoiceNumber,
       customer_id: userId,
-      success_url: `${this.callbackBaseUrl}/payments/callback/success`,
-      error_url: `${this.callbackBaseUrl}/payments/callback/error`,
-      cancel_url: `${this.callbackBaseUrl}/payments/callback/cancel`,
+      success_url: `${this.callbackBaseUrl}/thanh-toan/thanh-cong`,
+      error_url: `${this.callbackBaseUrl}/thanh-toan/that-bai`,
+      cancel_url: `${this.callbackBaseUrl}/thanh-toan/huy`,
     };
 
     fields.signature = this.generateSignature(fields);
