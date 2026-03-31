@@ -44,6 +44,7 @@
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sepay-pg-node": "^1.0.0",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {

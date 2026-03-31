@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionPlan, PaymentStatus, Role } from '@prisma/client';
 import { createHmac } from 'crypto';
+import { SePayPgClient } from 'sepay-pg-node';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -53,6 +54,15 @@ export class PaymentsService {
     );
   }
 
+  private getSePayClient() {
+    const env = this.configService.get<string>('SEPAY_ENV', 'sandbox');
+    return new SePayPgClient({
+      env: env as 'sandbox' | 'production',
+      merchant_id: this.merchantId,
+      secret_key: this.secretKey,
+    });
+  }
+
   async createCheckout(userId: string, dto: CreateCheckoutDto) {
     const priceEnv = PLAN_PRICE_ENV[dto.plan];
     const amount = parseInt(this.configService.get<string>(priceEnv, '99000'));
@@ -69,27 +79,25 @@ export class PaymentsService {
       },
     });
 
-    const fields: Record<string, string> = {
-      merchant: this.merchantId,
-      currency: 'VND',
-      order_amount: amount.toString(),
+    const sepayClient = this.getSePayClient();
+
+    const fields = sepayClient.checkout.initOneTimePaymentFields({
       operation: 'PURCHASE',
       payment_method: 'BANK_TRANSFER',
-      order_description: description,
       order_invoice_number: invoiceNumber,
-      customer_id: userId,
+      order_amount: amount,
+      currency: 'VND',
+      order_description: description,
       success_url: `${this.callbackBaseUrl}/thanh-toan/thanh-cong`,
       error_url: `${this.callbackBaseUrl}/thanh-toan/that-bai`,
       cancel_url: `${this.callbackBaseUrl}/thanh-toan/huy`,
-    };
-
-    fields.signature = this.generateSignature(fields);
+    });
 
     return {
       message: MESSAGES.PAYMENT.CHECKOUT_CREATED,
       data: {
         paymentId: payment.id,
-        checkoutUrl: `${this.checkoutUrl}/v1/checkout/init`,
+        checkoutUrl: sepayClient.checkout.initCheckoutUrl(),
         fields,
         plan: dto.plan,
         planLabel: PLAN_LABELS[dto.plan],
