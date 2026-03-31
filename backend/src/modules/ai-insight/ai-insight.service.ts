@@ -245,7 +245,9 @@ export class AiInsightService {
     const newsStr = d.news.map((n: any, i: number) => `${i + 1}. ${n.title} (${n.sourceName || ''}, ${n.updatedAt?.split(' ')[0] || ''})`).join('\n');
     parts.push(`Tin tức (${d.news.length} tin):\n${newsStr || 'Không có'}`);
 
-    parts.push(`\nPhân tích tất cả 6 lớp, nhớ KHÔNG trả về markdown, chỉ return 1 JSON object hợp lệ chứa đầy đủ {"L1": ..., "L2": ..., "L6": ...}`);
+    parts.push(`\nLƯU Ý CỰC QUAN TRỌNG: 
+1. KHÔNG trả về markdown, chỉ return 1 JSON object.
+2. BẮT BUỘC giữ nguyên các KEY TIẾNG VIỆT đã định nghĩa (VD: "Xu hướng", "Trạng thái", "Thanh khoản", "Hành động chính"). TUYỆT ĐỐI KHÔNG DỊCH KEY SANG TIẾNG ANH (như trend, signal, analysis).`);
     return parts.join('\n');
   }
 
