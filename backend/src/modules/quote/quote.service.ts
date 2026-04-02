@@ -12,6 +12,22 @@ export class QuoteService {
 
   constructor(private http: ProxyHttpService) {}
 
+  private isIndexSymbol(symbol: string): boolean {
+    return [
+      'VNINDEX',
+      'VN30',
+      'HNX',
+      'HNXINDEX',
+      'HNX30',
+      'UPCOM',
+      'UPCOMINDEX',
+      'VN100',
+      'VNMID',
+      'VNSMALL',
+      'VNALL',
+    ].includes(symbol.toUpperCase());
+  }
+
   /** Giá lịch sử OHLCV */
   async getHistory(
     symbol: string,
@@ -20,7 +36,9 @@ export class QuoteService {
     to?: string,
   ) {
     const data = await this.http.withFallback(
-      () => this.getHistoryFromKbs(symbol, interval, from, to),
+      () => this.isIndexSymbol(symbol)
+        ? this.getIndexHistoryFromKbs(symbol, interval, from, to)
+        : this.getHistoryFromKbs(symbol, interval, from, to),
       () => this.getHistoryFromVci(symbol, interval),
       'quote.getHistory',
     );
@@ -29,6 +47,11 @@ export class QuoteService {
 
   /** Khớp lệnh intraday */
   async getIntraday(symbol: string, page = 1, limit = 100) {
+    if (this.isIndexSymbol(symbol)) {
+      const data = await this.getIntradayFromVci(symbol, limit);
+      return { message: MESSAGES.COMMON.SUCCESS, data };
+    }
+
     const data = await this.http.withFallback(
       () => this.getIntradayFromKbs(symbol, page, limit),
       () => this.getIntradayFromVci(symbol, limit),
@@ -75,6 +98,39 @@ export class QuoteService {
       foreignBuy: item.fb || null,
       foreignSell: item.fs || null,
       foreignNet: item.fnet || null,
+    }));
+  }
+
+  private async getIndexHistoryFromKbs(
+    symbol: string,
+    interval: string,
+    from?: string,
+    to?: string,
+  ) {
+    const suffix = KBS_INTERVAL_MAP[interval] || 'day';
+    const now = new Date();
+    const oneYearAgo = new Date(now);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    const sdate = from || this.formatDateKbs(oneYearAgo);
+    const edate = to || this.formatDateKbs(now);
+
+    const raw = await this.http.kbsGet<any>(
+      `/index/${symbol.toUpperCase()}/data_${suffix}`,
+      { sdate, edate },
+    );
+
+    const key = `data_${suffix}`;
+    const items: any[] = raw?.[key] || [];
+
+    return items.map((item) => ({
+      time: item.time || item.t,
+      open: item.o ? item.o / 1000 : null,
+      high: item.h ? item.h / 1000 : null,
+      low: item.l ? item.l / 1000 : null,
+      close: item.c ? item.c / 1000 : null,
+      volume: item.v || item.volume,
+      value: item.va || item.value || null,
     }));
   }
 
@@ -137,6 +193,10 @@ export class QuoteService {
         foreignNet: null,
       });
     }
+
+    // VCI returns newest-first → sort ascending (oldest-first) to match KBS format
+    result.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
     return result;
   }
 

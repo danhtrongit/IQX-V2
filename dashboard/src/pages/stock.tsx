@@ -13,6 +13,7 @@ import { StockAiInsight } from "@/components/stock/stock-ai-insight"
 import { useParams, useNavigate } from "react-router"
 import { SymbolProvider } from "@/contexts/symbol-context"
 import { SidebarProvider } from "@/contexts/sidebar-context"
+import { MarketDataProvider } from "@/contexts/market-data-context"
 import { BarChart3, LineChart, Info, X, GripHorizontal } from "lucide-react"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -58,8 +59,9 @@ export default function StockPage() {
   }
 
   return (
-    <SymbolProvider symbol={ticker}>
-      <SidebarProvider defaultPanel="trading">
+    <MarketDataProvider>
+      <SymbolProvider symbol={ticker}>
+        <SidebarProvider defaultPanel="trading">
         <div id="dashboard-root" className="flex h-svh flex-col overflow-hidden bg-background relative">
           <Header />
           <MarketBar />
@@ -163,7 +165,8 @@ export default function StockPage() {
             )}
           </AnimatePresence>
         </div>
-      </SidebarProvider>
-    </SymbolProvider>
+        </SidebarProvider>
+      </SymbolProvider>
+    </MarketDataProvider>
   )
 }

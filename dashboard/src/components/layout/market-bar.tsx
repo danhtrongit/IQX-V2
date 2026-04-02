@@ -1,7 +1,8 @@
 import { useRef, useEffect, useState } from "react"
 import { TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { useMarketIndices, usePriceBoard, type IndexData } from "@/hooks/use-market-data"
+import { type IndexData } from "@/hooks/use-market-data"
+import { useIndices, usePrice } from "@/contexts/market-data-context"
 import { useSymbol } from "@/contexts/symbol-context"
 import { StockLogo } from "@/components/stock/stock-logo"
 
@@ -116,9 +117,9 @@ const INDEX_SYMBOLS = new Set(["VNINDEX", "VN30", "HNX", "HNX30", "UPCOM", "VN10
 
 export function MarketBar() {
   const { symbol } = useSymbol()
-  const { indices } = useMarketIndices(30000)
+  const { indices } = useIndices()
   const isIndex = INDEX_SYMBOLS.has(symbol.toUpperCase())
-  const { data: stockData } = usePriceBoard(isIndex ? "" : symbol, 10000)
+  const { data: stockData } = usePrice(isIndex ? "" : symbol)
 
   return (
     <div

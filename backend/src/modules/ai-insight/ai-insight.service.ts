@@ -175,7 +175,7 @@ export class AiInsightService {
     const latestVolume = d.ohlcv.length ? d.ohlcv[d.ohlcv.length - 1].volume : 0;
 
     const realtimeStr = d.realtime
-      ? `Realtime: Giá hiện tại (P0)=${d.realtime.price}, Volume hiện tại (V0)=${d.realtime.volume}`
+      ? `Realtime (Bảng giá live): Giá hiện tại (P0)=${d.realtime.price}, Volume hiện tại (V0)=${d.realtime.volume}, Cao=${d.realtime.high}, Thấp=${d.realtime.low}, Tham chiếu=${d.realtime.ref}${d.realtime.change != null ? `, Thay đổi=${d.realtime.change} (${d.realtime.changePercent?.toFixed(2)}%)` : ''}`
       : `Realtime (Chốt phiên mới nhất): P0=${latestClose.toFixed(2)}, V0=${latestVolume}`;
 
     parts.push(`\n## DỮ LIỆU CHO L1 (Xu hướng)`);

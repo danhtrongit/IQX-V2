@@ -8,6 +8,7 @@ import {
 } from "@/components/layout"
 import { SymbolProvider } from "@/contexts/symbol-context"
 import { SidebarProvider } from "@/contexts/sidebar-context"
+import { MarketDataProvider } from "@/contexts/market-data-context"
 import { toast } from "sonner"
 import { Lightbulb } from "lucide-react"
 import { useSEO } from "@/hooks/use-seo"
@@ -30,21 +31,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <SymbolProvider symbol="VNINDEX">
-      <SidebarProvider defaultPanel="news">
-        <div id="dashboard-root" className="flex h-svh flex-col overflow-hidden bg-background">
-          <Header />
-          <MarketBar />
+    <MarketDataProvider>
+      <SymbolProvider symbol="VNINDEX">
+        <SidebarProvider defaultPanel="news">
+          <div id="dashboard-root" className="flex h-svh flex-col overflow-hidden bg-background">
+            <Header />
+            <MarketBar />
 
-          <div className="flex flex-1 min-h-0">
-            <CenterPanel />
-            <RightSidebar />
-            <RightToolbar onActionClick={handleActionClick} />
+            <div className="flex flex-1 min-h-0">
+              <CenterPanel />
+              <RightSidebar />
+              <RightToolbar onActionClick={handleActionClick} />
+            </div>
+
+            <Footer />
           </div>
-
-          <Footer />
-        </div>
-      </SidebarProvider>
-    </SymbolProvider>
+        </SidebarProvider>
+      </SymbolProvider>
+    </MarketDataProvider>
   )
 }

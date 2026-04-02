@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { usePriceBoard, useArenaAccount, type PriceBoardData } from "@/hooks/use-market-data"
+import { useArenaAccount, type PriceBoardData } from "@/hooks/use-market-data"
+import { usePrice } from "@/contexts/market-data-context"
 import { useSymbol } from "@/contexts/symbol-context"
 import { useAuth } from "@/contexts/auth-context"
 import { arenaApi } from "@/lib/api"
@@ -147,7 +148,7 @@ export function RightPanel() {
   const navigate = useNavigate()
   const { isAuthenticated, setShowAuthModal } = useAuth()
 
-  const { data, isLoading } = usePriceBoard(symbol, 5000)
+  const { data, isLoading } = usePrice(symbol)
   const { account, refresh: refreshAccount } = useArenaAccount(isAuthenticated, 15000)
   const { isSymbolWatched, toggleSymbol } = useWatchlist()
 

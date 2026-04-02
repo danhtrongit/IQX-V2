@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AiNewsService } from '../ai-news/ai-news.service';
 import { CompanyService } from '../company/company.service';
 import { QuoteService } from '../quote/quote.service';
+import { TradingService } from '../trading/trading.service';
 
 export interface InsightRawData {
   symbol: string;
@@ -22,6 +23,7 @@ export class InsightDataCollector {
   constructor(
     private companyService: CompanyService,
     private quoteService: QuoteService,
+    private tradingService: TradingService,
     private aiNews: AiNewsService,
   ) {}
 
@@ -36,6 +38,7 @@ export class InsightDataCollector {
       news,
       tickerScore,
       ohlcvRes,
+      livePriceRes,
     ] = await Promise.allSettled([
       this.companyService.getSupplyDemand(
         upper,
@@ -65,6 +68,7 @@ export class InsightDataCollector {
       this.fetchNews(upper),
       this.fetchTickerScore(upper),
       this.fetchOHLCV(upper),
+      this.fetchLivePrice(upper),
     ]);
 
     // Extract data from service responses
@@ -73,27 +77,39 @@ export class InsightDataCollector {
     const pfData = this.extractServiceData(proprietaryFlowRes);
     const insData = this.extractServiceData(insiderRes);
 
-    // OHLCV: extract from supply-demand response (has closePrice, openPrice, etc.)
-    // OR use dedicated OHLCV from QuoteService
+    // OHLCV: extract from QuoteService (oldest-first after sort fix)
     const ohlcvData = this.extract(ohlcvRes, []);
     const validOhlcv = ohlcvData.length > 0 ? ohlcvData : this.extractOHLCVFromSD(sdData);
 
-    const checkIsTradingHour = () => {
-      const now = new Date();
-      // UTC+7
-      const vnTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
-      const day = vnTime.getDay();
-      const h = vnTime.getHours();
-      const m = vnTime.getMinutes();
-      const t = h * 60 + m;
-      return day >= 1 && day <= 5 && t >= 540 && t <= 885; // 09:00 -> 14:45
-    };
+    // Ensure OHLCV is sorted oldest-first (defensive)
+    validOhlcv.sort((a: any, b: any) => {
+      const tA = a.date ? new Date(a.date).getTime() : 0;
+      const tB = b.date ? new Date(b.date).getTime() : 0;
+      return tA - tB;
+    });
 
-    const isTrading = checkIsTradingHour();
+    // Live price from price-board API (truly realtime)
+    const liveData = this.extractLivePrice(livePriceRes);
     const lastO = validOhlcv.length > 0 ? validOhlcv[validOhlcv.length - 1] : null;
 
+    // Build realtime: prefer live price-board data, fallback to OHLCV last bar
     let realtime = null;
-    if (isTrading && lastO) {
+    if (liveData) {
+      // Price-board data is in "thousands" format (e.g., 139.4 = 139,400 VND)
+      realtime = {
+        price: liveData.closePrice,
+        volume: liveData.totalVolume,
+        high: liveData.highestPrice,
+        low: liveData.lowestPrice,
+        ref: liveData.referencePrice,
+        change: liveData.priceChange,
+        changePercent: liveData.percentChange,
+      };
+      this.logger.debug(
+        `Live price for ${upper}: ${liveData.closePrice} (ref: ${liveData.referencePrice})`,
+      );
+    } else if (lastO) {
+      // Fallback: use OHLCV last bar close (may be stale)
       realtime = {
         price: lastO.close,
         volume: lastO.volume,
@@ -101,6 +117,9 @@ export class InsightDataCollector {
         low: lastO.low,
         ref: lastO.open,
       };
+      this.logger.warn(
+        `No live price for ${upper}, falling back to OHLCV last bar: ${lastO.close}`,
+      );
     }
 
     return {
@@ -114,6 +133,26 @@ export class InsightDataCollector {
       news: this.extract(news, []),
       tickerScore: this.extract(tickerScore, null),
     };
+  }
+
+  // ── Live price from price-board (TradingService) ──
+
+  private async fetchLivePrice(symbol: string) {
+    const result = await this.tradingService.getPriceBoard([symbol]);
+    const items = result?.data || [];
+    return items.length > 0 ? items[0] : null;
+  }
+
+  private extractLivePrice(result: PromiseSettledResult<any>): any | null {
+    if (result.status === 'fulfilled' && result.value) {
+      return result.value;
+    }
+    if (result.status === 'rejected') {
+      this.logger.warn(
+        `Live price fetch failed: ${(result as any).reason?.message || 'unknown'}`,
+      );
+    }
+    return null;
   }
 
   // ── OHLCV from QuoteService (KBS + VCI chart fallback) ──
@@ -135,7 +174,9 @@ export class InsightDataCollector {
       this.formatDateDDMMYYYY(to),
     );
     const data = result?.data || [];
-    return data.slice(-30).map((r: any) => ({
+
+    // Map and take last 30 bars (data should be oldest-first after QuoteService sort fix)
+    const mapped = data.map((r: any) => ({
       date: typeof r.time === 'string' && r.time.includes('T') ? r.time.split('T')[0] : r.tradingDate || r.date || r.time || '',
       open: r.open ?? r.openPrice ?? 0,
       high: r.high ?? r.highPrice ?? 0,
@@ -143,6 +184,15 @@ export class InsightDataCollector {
       close: r.close ?? r.closePrice ?? 0,
       volume: r.volume ?? r.totalVolume ?? 0,
     }));
+
+    // Sort oldest-first (defensive — covers both KBS and VCI)
+    mapped.sort((a: any, b: any) => {
+      const tA = a.date ? new Date(a.date).getTime() : 0;
+      const tB = b.date ? new Date(b.date).getTime() : 0;
+      return tA - tB;
+    });
+
+    return mapped.slice(-30);
   }
 
   // ── Fallback: extract OHLCV from supply-demand data ──

@@ -215,7 +215,7 @@ function LayerNode({ data }: NodeProps) {
       animate={isVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.3 }}
       transition={{ delay: animDelay, duration: 0.5, type: "spring", stiffness: 160, damping: 16 }}
     >
-      <Handle type="source" position={Position.Right} className="!bg-transparent !border-0 !w-0 !h-0" />
+      <Handle type="source" position={data.sourcePosition as any || Position.Right} className="!bg-transparent !border-0 !w-0 !h-0" />
       <Handle type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
       <div className={`cursor-pointer transition-all duration-300 ${isActive ? "scale-[1.03]" : "hover:scale-[1.02]"}`}>
         <div
@@ -244,8 +244,8 @@ function LayerNode({ data }: NodeProps) {
             <div className="space-y-1">
               {summaryItems.map((item) => (
                 <div key={item.label} className="flex items-center justify-between py-0.5 border-b border-border/5 last:border-0">
-                  <span className="text-[10px] text-muted-foreground/70">{item.label}</span>
-                  <span className={`text-[11px] font-bold tabular-nums ${getValueColor(item.value)}`}>
+                  <span className="text-[10px] text-muted-foreground/70 shrink-0">{item.label}</span>
+                  <span className={`text-[11px] font-bold tabular-nums truncate max-w-[140px] text-right ${getValueColor(item.value)}`}>
                     {item.value}
                   </span>
                 </div>
@@ -280,7 +280,9 @@ function DecisionNode({ data }: NodeProps) {
       animate={isVisible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
       transition={{ delay: 1.6, duration: 0.7, type: "spring", stiffness: 110, damping: 14 }}
     >
-      <Handle type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
+      <Handle id="left" type="target" position={Position.Left} className="!bg-transparent !border-0 !w-0 !h-0" />
+      <Handle id="top" type="target" position={Position.Top} className="!bg-transparent !border-0 !w-0 !h-0" />
+      <Handle id="bottom" type="target" position={Position.Bottom} className="!bg-transparent !border-0 !w-0 !h-0" />
       <div className={`cursor-pointer transition-all duration-300 ${isActive ? "scale-105" : "hover:scale-[1.02]"}`}>
         <div
           className="w-[320px] rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/8 via-background/90 to-background/80 backdrop-blur-sm p-5"
@@ -764,11 +766,12 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
   const { initialNodes, initialEdges } = useMemo(() => {
     const keys = [...LAYERS_ORDER]
     const positions: Record<string, { x: number; y: number }> = {
-      trend:     { x: 20,  y: 10 },
-      liquidity: { x: 20,  y: 185 },
-      moneyFlow: { x: 20,  y: 360 },
-      insider:   { x: 20,  y: 505 },
-      news:      { x: 20,  y: 630 },
+      liquidity: { x: 20, y: 40 },
+      moneyFlow: { x: 20, y: 220 },
+      insider:   { x: 20, y: 400 },
+
+      trend:     { x: 360, y: 0 },
+      news:      { x: 360, y: 460 },
     }
 
     const nodes: Node[] = keys.map((key, i) => ({
@@ -781,6 +784,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
         animDelay: i * 0.2,
         isVisible: layersVisible,
         layerOutput: insight?.layers[key]?.output,
+        sourcePosition: key === "trend" ? Position.Bottom : key === "news" ? Position.Top : Position.Right,
       },
       draggable: false,
     }))
@@ -788,7 +792,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     nodes.push({
       id: "decision",
       type: "decisionNode",
-      position: { x: 380, y: 280 },
+      position: { x: 340, y: 190 },
       data: {
         isActive: selectedLayer === "decision",
         isVisible: layersVisible,
@@ -799,14 +803,21 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
       draggable: false,
     })
 
-    const edges: Edge[] = keys.map((key) => ({
-      id: `${key}-decision`,
-      source: key,
-      target: "decision",
-      animated: true,
-      type: "default",
-      style: { stroke: LAYER_CONFIG[key].color, strokeWidth: 1.5, strokeOpacity: 0.3, strokeDasharray: "6 3" },
-    }))
+    const edges: Edge[] = keys.map((key) => {
+      let targetHandle = "left"
+      if (key === "trend") targetHandle = "top"
+      if (key === "news") targetHandle = "bottom"
+      
+      return {
+        id: `${key}-decision`,
+        source: key,
+        target: "decision",
+        targetHandle,
+        animated: true,
+        type: "default",
+        style: { stroke: LAYER_CONFIG[key].color, strokeWidth: 1.5, strokeOpacity: 0.3, strokeDasharray: "6 3" },
+      }
+    })
 
     return { initialNodes: nodes, initialEdges: edges }
   }, [selectedLayer, layersVisible, handleLayerClick, insight, priceData, trendTags])
@@ -884,7 +895,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
           nodeTypes={nodeTypes}
           onNodeClick={(_event, node) => handleLayerClick(node.id)}
           fitView
-          fitViewOptions={{ padding: 0.15 }}
+          fitViewOptions={{ padding: 0.1 }}
           proOptions={{ hideAttribution: true }}
           panOnDrag={false}
           zoomOnScroll={false}
@@ -893,8 +904,8 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
           preventScrolling={false}
           nodesDraggable={false}
           nodesConnectable={false}
-          minZoom={0.8}
-          maxZoom={1.2}
+          minZoom={0.4}
+          maxZoom={1.5}
         >
           <Background gap={20} size={1} color="hsl(var(--border) / 0.08)" />
         </ReactFlow>

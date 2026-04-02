@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1"
 
-// ── Types ──
+// ── Types (shared by context + consumers) ──
 
 export interface IndexData {
   name: string
@@ -51,10 +51,9 @@ function formatDateParam(date: Date): string {
   return `${dd}-${mm}-${yyyy}`
 }
 
-async function fetchIndexData(): Promise<IndexData[]> {
+export async function fetchIndexData(): Promise<IndexData[]> {
   const results: IndexData[] = []
 
-  // Only fetch last 7 days (covers weekends/holidays)
   const now = new Date()
   const weekAgo = new Date(now)
   weekAgo.setDate(weekAgo.getDate() - 7)
@@ -72,7 +71,6 @@ async function fetchIndexData(): Promise<IndexData[]> {
         const items = json?.data || []
         if (items.length < 1) return
 
-        // KBS returns data oldest-first → take last items
         const latest = items[items.length - 1]
         const prev = items.length > 1 ? items[items.length - 2] : latest
 
@@ -93,15 +91,14 @@ async function fetchIndexData(): Promise<IndexData[]> {
     }),
   )
 
-  // Sort by original order
   return INDEX_SYMBOLS.map((s) =>
     results.find((r) => r.name === (INDEX_DISPLAY[s] || s)),
   ).filter(Boolean) as IndexData[]
 }
 
-// ── Fetch PriceBoard ──
+// ── Fetch PriceBoard (batch) ──
 
-async function fetchPriceBoard(symbols: string[]): Promise<PriceBoardData[]> {
+export async function fetchPriceBoard(symbols: string[]): Promise<PriceBoardData[]> {
   try {
     const resp = await fetch(`${API_BASE}/trading/price-board`, {
       method: "POST",
@@ -116,86 +113,7 @@ async function fetchPriceBoard(symbols: string[]): Promise<PriceBoardData[]> {
   }
 }
 
-// ── Hooks ──
-
-export function useMarketIndices(refreshInterval = 30000) {
-  const [indices, setIndices] = useState<IndexData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    const data = await fetchIndexData()
-    if (data.length > 0) setIndices(data)
-    setIsLoading(false)
-  }, [])
-
-  useEffect(() => {
-    load()
-    const timer = setInterval(load, refreshInterval)
-    return () => clearInterval(timer)
-  }, [load, refreshInterval])
-
-  return { indices, isLoading }
-}
-
-export function usePriceBoard(symbol: string, refreshInterval = 10000) {
-  const [data, setData] = useState<PriceBoardData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const prevSymbol = useRef(symbol)
-
-  const load = useCallback(async (sym: string) => {
-    if (!sym) return
-    const results = await fetchPriceBoard([sym.toUpperCase()])
-    if (results.length > 0) setData(results[0])
-    setIsLoading(false)
-  }, [])
-
-  useEffect(() => {
-    if (symbol !== prevSymbol.current) {
-      setIsLoading(true)
-      setData(null)
-      prevSymbol.current = symbol
-    }
-    load(symbol)
-    const timer = setInterval(() => load(symbol), refreshInterval)
-    return () => clearInterval(timer)
-  }, [symbol, load, refreshInterval])
-
-  return { data, isLoading }
-}
-
-// ── Multi-symbol PriceBoard (batch polling) ──
-
-export function useMultiPriceBoard(symbols: string[], refreshInterval = 10000) {
-  const [priceMap, setPriceMap] = useState<Record<string, PriceBoardData>>({})
-  const [isLoading, setIsLoading] = useState(true)
-  const symbolsKey = symbols.sort().join(",")
-
-  const load = useCallback(async () => {
-    if (symbols.length === 0) {
-      setPriceMap({})
-      setIsLoading(false)
-      return
-    }
-    const results = await fetchPriceBoard(symbols.map((s) => s.toUpperCase()))
-    const map: Record<string, PriceBoardData> = {}
-    for (const item of results) {
-      map[item.symbol] = item
-    }
-    setPriceMap(map)
-    setIsLoading(false)
-  }, [symbolsKey])
-
-  useEffect(() => {
-    load()
-    if (symbols.length === 0) return
-    const timer = setInterval(load, refreshInterval)
-    return () => clearInterval(timer)
-  }, [load, refreshInterval, symbolsKey])
-
-  return { priceMap, isLoading }
-}
-
-// ── Arena Account Hook ──
+// ── Arena Account Hook (independent — not part of market data context) ──
 
 export interface ArenaAccountData {
   id: string

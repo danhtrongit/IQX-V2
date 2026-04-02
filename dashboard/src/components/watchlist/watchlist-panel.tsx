@@ -19,7 +19,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/contexts/auth-context"
 import { api } from "@/lib/api"
 import { useNavigate } from "react-router"
-import { useMultiPriceBoard, type PriceBoardData } from "@/hooks/use-market-data"
+import { type PriceBoardData } from "@/hooks/use-market-data"
+import { usePrices } from "@/contexts/market-data-context"
 
 type WatchlistTab = "watchlist" | "holdings" | "history"
 
@@ -199,7 +200,7 @@ function WatchlistTabContent() {
     () => [...new Set(lists.flatMap((l) => l.symbols))],
     [lists],
   )
-  const { priceMap } = useMultiPriceBoard(allSymbols, 10000)
+  const { priceMap } = usePrices(allSymbols)
 
   const handleCreate = async () => {
     if (!newName.trim()) return
@@ -375,7 +376,7 @@ function HoldingsTabContent() {
   }, [])
 
   const holdingSymbols = useMemo(() => items.map((i) => i.symbol), [items])
-  const { priceMap } = useMultiPriceBoard(holdingSymbols, 10000)
+  const { priceMap } = usePrices(holdingSymbols)
 
   if (loading) {
     return (

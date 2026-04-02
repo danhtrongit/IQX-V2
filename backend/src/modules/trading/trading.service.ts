@@ -1,12 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { ProxyHttpService } from '../../common/services/proxy-http.service';
 import { DATA_SOURCES } from '../../common/constants/data-sources.constant';
 import { KBS_EXCHANGE_MAP } from '../../common/constants/mappings.constant';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import { MarketDataGateway } from './market-data.gateway';
 
 @Injectable()
 export class TradingService {
-  constructor(private http: ProxyHttpService) {}
+  private readonly logger = new Logger(TradingService.name);
+
+  constructor(
+    private http: ProxyHttpService,
+    private marketGateway: MarketDataGateway,
+  ) {}
 
   /** Bảng giá realtime */
   async getPriceBoard(symbols: string[]) {
@@ -93,5 +100,55 @@ export class TradingService {
         foreignRoom: null,
       };
     });
+  }
+
+  // ---------- TỰ ĐỘNG POLLING MARKETS ----------
+
+  @Cron('*/3 * * * * *') // Mỗi 3 giây
+  async pollMarketIndices() {
+    try {
+      // payload map: HOSE -> VNINDEX, 30 -> VN30...
+      const codes = 'HOSE,30,HNX,HNX30,UPCOM,100,MID,SML,ALL';
+      const raw = await this.http.kbsPost<any[]>(
+        '/index',
+        { code: codes },
+        DATA_SOURCES.KBS.PRICE_BOARD_HEADERS,
+      );
+
+      if (raw && raw.length > 0) {
+        // Ánh xạ lại về chuẩn hệ thống
+        const KBS_CODE_TO_SYMBOL: Record<string, string> = {
+          HOSE: 'VNINDEX',
+          '30': 'VN30',
+          HNX: 'HNX',
+          HNX30: 'HNX30',
+          UPCOM: 'UPCOM',
+          '100': 'VN100',
+          MID: 'VNMID',
+          SML: 'VNSMALL',
+          ALL: 'VNALL',
+        };
+
+        const result = raw.map((item) => ({
+          symbol: KBS_CODE_TO_SYMBOL[item.symbol] || item.symbol,
+          price: item.MI,
+          change: item.ICH,
+          changePercent: item.IPC,
+          open: item.O,
+          high: item.H,
+          low: item.L,
+          volume: item.AV,
+          value: item.TVA,
+          advances: item.ADV,
+          declines: item.DE,
+          noChange: item.NC,
+          timestamp: item.time,
+        }));
+
+        this.marketGateway.broadcastMarketIndices(result);
+      }
+    } catch (error) {
+      // Catch ngầm để không spam console, hoặc bật lên nếu thấy cần thiết!
+    }
   }
 }

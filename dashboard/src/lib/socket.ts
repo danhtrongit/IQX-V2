@@ -3,11 +3,12 @@ import { getAccessToken } from "./api"
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.PROD ? "" : "http://localhost:3001")
 
-let socket: Socket | null = null
+let chatSocket: Socket | null = null
+let marketSocket: Socket | null = null
 
 export function getSocket(): Socket {
-  if (!socket) {
-    socket = io(`${SOCKET_URL}/chat`, {
+  if (!chatSocket) {
+    chatSocket = io(`${SOCKET_URL}/chat`, {
       auth: { token: getAccessToken() },
       autoConnect: false,
       reconnection: true,
@@ -15,7 +16,19 @@ export function getSocket(): Socket {
       reconnectionAttempts: 10,
     })
   }
-  return socket
+  return chatSocket
+}
+
+export function getMarketSocket(): Socket {
+  if (!marketSocket) {
+    marketSocket = io(`${SOCKET_URL}/market`, {
+      autoConnect: false,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
+    })
+  }
+  return marketSocket
 }
 
 export function connectSocket() {
@@ -25,9 +38,22 @@ export function connectSocket() {
   return s
 }
 
+export function connectMarketSocket() {
+  const s = getMarketSocket()
+  if (!s.connected) s.connect()
+  return s
+}
+
 export function disconnectSocket() {
-  if (socket) {
-    socket.disconnect()
-    socket = null
+  if (chatSocket) {
+    chatSocket.disconnect()
+    chatSocket = null
+  }
+}
+
+export function disconnectMarketSocket() {
+  if (marketSocket) {
+    marketSocket.disconnect()
+    marketSocket = null
   }
 }

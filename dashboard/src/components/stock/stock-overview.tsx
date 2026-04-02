@@ -11,7 +11,7 @@ import {
   Building2,
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { usePriceBoard } from "@/hooks/use-market-data"
+import { usePrice } from "@/contexts/market-data-context"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1"
 
@@ -121,7 +121,7 @@ export function StockOverview({ symbol }: { symbol: string }) {
   const [isLoading, setIsLoading] = useState(true)
 
   // Live price from MSN price board (same source as RightPanel)
-  const { data: liveData } = usePriceBoard(symbol)
+  const { data: liveData } = usePrice(symbol)
 
   useEffect(() => {
     setIsLoading(true)
