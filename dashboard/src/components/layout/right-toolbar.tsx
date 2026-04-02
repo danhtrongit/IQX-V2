@@ -85,7 +85,7 @@ export function RightToolbar({ onActionClick }: { onActionClick?: (id: string) =
   return (
     <aside
       id="right-toolbar"
-      className="flex w-16 shrink-0 flex-col items-center border-l border-border bg-card py-1 px-0.5 gap-0.5"
+      className="fixed bottom-0 left-0 right-0 z-50 w-full h-[52px] bg-card border-t border-border flex flex-row items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] md:static md:w-16 md:h-full md:flex-col md:border-l md:border-t-0 md:py-1 md:px-0.5 gap-0.5"
     >
       {ITEMS.map((item) => (
         <ToolbarButton
@@ -96,7 +96,8 @@ export function RightToolbar({ onActionClick }: { onActionClick?: (id: string) =
         />
       ))}
 
-      <Separator className="w-8 my-0.5" />
+      <Separator className="hidden md:block w-8 my-0.5" />
+      <Separator orientation="vertical" className="md:hidden h-8 mx-0.5" />
 
       {BOTTOM_ITEMS.map((item) => (
         <ToolbarButton
@@ -107,7 +108,7 @@ export function RightToolbar({ onActionClick }: { onActionClick?: (id: string) =
         />
       ))}
 
-      <div className="flex-1" />
+      <div className="hidden md:block flex-1" />
     </aside>
   )
 }

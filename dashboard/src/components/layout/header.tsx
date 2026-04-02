@@ -181,7 +181,7 @@ function StockSearch() {
 
   return (
     <div ref={containerRef} className="relative" id="header-search">
-      <div className="relative flex items-center w-56 focus-within:w-72 transition-all duration-200">
+      <div className="relative flex items-center w-32 focus-within:w-48 md:w-56 md:focus-within:w-72 transition-all duration-200">
         <Search className="absolute left-2 size-3.5 text-muted-foreground pointer-events-none z-10" />
         <Input
           ref={inputRef}
@@ -289,7 +289,7 @@ export function Header() {
       <Separator orientation="vertical" className="h-5 mx-1" />
 
       {/* Navigation */}
-      <nav id="header-nav" className="flex items-center gap-0.5">
+      <nav id="header-nav" className="hidden md:flex items-center gap-0.5">
         {NAV_ITEMS.map((item) => (
           <a
             key={item.href}
@@ -312,10 +312,10 @@ export function Header() {
       {/* Search */}
       <StockSearch />
 
-      <Separator orientation="vertical" className="h-5 mx-1" />
+      <Separator orientation="vertical" className="hidden md:block h-5 mx-1" />
 
       {/* Utility Icons */}
-      <div id="header-utilities" className="flex items-center gap-0.5">
+      <div id="header-utilities" className="hidden md:flex items-center gap-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="size-7">

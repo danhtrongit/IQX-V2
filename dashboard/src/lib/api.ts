@@ -26,37 +26,56 @@ export const api: KyInstance = ky.create({
       },
     ],
     afterResponse: [
-      async (_request, _options, response) => {
+      async (request, _options, response) => {
         if (response.status === 401) {
           const refreshed = await tryRefreshToken()
           if (!refreshed) {
             setAccessToken(null)
             localStorage.removeItem("refreshToken")
             window.dispatchEvent(new CustomEvent("auth:logout"))
+            return
           }
+          
+          const token = getAccessToken()
+          if (token) {
+            request.headers.set("Authorization", `Bearer ${token}`)
+          }
+          return ky(request)
         }
       },
     ],
   },
 })
 
+let refreshTokenPromise: Promise<boolean> | null = null
+
 async function tryRefreshToken(): Promise<boolean> {
-  const refreshToken = localStorage.getItem("refreshToken")
-  if (!refreshToken) return false
-
-  try {
-    const res = await ky
-      .post(`${API_BASE}/auth/refresh`, {
-        json: { refreshToken },
-      })
-      .json<{ data: { accessToken: string; refreshToken: string } }>()
-
-    setAccessToken(res.data.accessToken)
-    localStorage.setItem("refreshToken", res.data.refreshToken)
-    return true
-  } catch {
-    return false
+  if (refreshTokenPromise) {
+    return refreshTokenPromise
   }
+
+  refreshTokenPromise = (async () => {
+    const refreshToken = localStorage.getItem("refreshToken")
+    if (!refreshToken) return false
+
+    try {
+      const res = await ky
+        .post(`${API_BASE}/auth/refresh`, {
+          json: { refreshToken },
+        })
+        .json<{ data: { accessToken: string; refreshToken: string } }>()
+
+      setAccessToken(res.data.accessToken)
+      localStorage.setItem("refreshToken", res.data.refreshToken)
+      return true
+    } catch {
+      return false
+    } finally {
+      refreshTokenPromise = null
+    }
+  })()
+
+  return refreshTokenPromise
 }
 
 // ── Auth API ──

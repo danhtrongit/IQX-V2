@@ -165,7 +165,7 @@ export function StockOverview({ symbol }: { symbol: string }) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="grid grid-cols-3 gap-0 divide-x divide-border/20 min-h-0" style={{ minHeight: "100%" }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-0 min-h-0 md:divide-x divide-border/20 divide-y md:divide-y-0" style={{ minHeight: "100%" }}>
 
         {/* ── Left Column: Price + Valuation + Profitability ── */}
         <div className="p-4 space-y-3">
@@ -296,7 +296,7 @@ export function StockOverview({ symbol }: { symbol: string }) {
           {profile?.companyProfile && (
             <section>
               <SectionHead icon={<FileText className="size-3.5" />} title="Giới thiệu" />
-              <p className="text-xs text-muted-foreground leading-[1.6] whitespace-pre-line">
+              <p className="text-xs text-muted-foreground leading-[1.6] whitespace-pre-line line-clamp-4 md:line-clamp-none">
                 {profile.companyProfile.slice(0, 600)}
                 {profile.companyProfile.length > 600 ? "..." : ""}
               </p>

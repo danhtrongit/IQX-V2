@@ -331,7 +331,7 @@ function FinancialRatios({ symbol, ratioPeriod }: { symbol: string; ratioPeriod:
   }
 
   return (
-    <div className="grid grid-cols-3 gap-0 divide-x divide-border/20">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-0 md:divide-x divide-y md:divide-y-0 divide-border/20">
 
       {/* Left: Key Ratios */}
       <div className="p-3 space-y-3">
@@ -356,7 +356,7 @@ function FinancialRatios({ symbol, ratioPeriod }: { symbol: string; ratioPeriod:
       </div>
 
       {/* Right: Charts (spanning 2 cols) */}
-      <div className="col-span-2 p-3 space-y-4">
+      <div className="col-span-1 md:col-span-2 p-3 space-y-4">
 
         {/* Revenue & Profit Chart */}
         {chartData.length > 0 && (
@@ -407,7 +407,7 @@ function FinancialRatios({ symbol, ratioPeriod }: { symbol: string; ratioPeriod:
             <Layers className="size-3.5 text-muted-foreground" />
             <span className="text-[11px] font-bold text-foreground uppercase tracking-wide">Chi tiết theo kỳ</span>
           </div>
-          <div>
+          <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border/40">

@@ -27,6 +27,7 @@ import {
   Table,
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1"
 
@@ -371,7 +372,7 @@ function DetailPanel({
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 340, opacity: 0 }}
       transition={{ type: "spring", stiffness: 220, damping: 26 }}
-      className="absolute top-0 right-0 bottom-0 w-[400px] z-50 bg-background/95 backdrop-blur-xl border-l border-border/30 shadow-2xl flex flex-col"
+      className="absolute top-0 right-0 bottom-0 w-full md:w-[400px] z-50 bg-background/95 backdrop-blur-xl border-l border-border/30 shadow-2xl flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-border/20 shrink-0">
@@ -699,6 +700,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
   const [error, setError] = useState("")
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null)
   const [layersVisible, setLayersVisible] = useState(false)
+  const isMobile = useMediaQuery("(max-width: 768px)")
 
   useEffect(() => {
     setIsLoading(true)
@@ -765,7 +767,15 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
 
   const { initialNodes, initialEdges } = useMemo(() => {
     const keys = [...LAYERS_ORDER]
-    const positions: Record<string, { x: number; y: number }> = {
+    
+    // Stack vertically on mobile, horizontal on desktop
+    const positions: Record<string, { x: number; y: number }> = isMobile ? {
+      liquidity: { x: 20, y: 350 },
+      moneyFlow: { x: 20, y: 500 },
+      insider:   { x: 20, y: 650 },
+      trend:     { x: 20, y: 200 },
+      news:      { x: 20, y: 800 },
+    } : {
       liquidity: { x: 20, y: 40 },
       moneyFlow: { x: 20, y: 220 },
       insider:   { x: 20, y: 400 },
@@ -784,7 +794,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
         animDelay: i * 0.2,
         isVisible: layersVisible,
         layerOutput: insight?.layers[key]?.output,
-        sourcePosition: key === "trend" ? Position.Bottom : key === "news" ? Position.Top : Position.Right,
+        sourcePosition: isMobile ? Position.Bottom : (key === "trend" ? Position.Bottom : key === "news" ? Position.Top : Position.Right),
       },
       draggable: false,
     }))
@@ -792,7 +802,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
     nodes.push({
       id: "decision",
       type: "decisionNode",
-      position: { x: 340, y: 190 },
+      position: isMobile ? { x: 0, y: 20 } : { x: 340, y: 190 },
       data: {
         isActive: selectedLayer === "decision",
         isVisible: layersVisible,
@@ -803,24 +813,56 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
       draggable: false,
     })
 
-    const edges: Edge[] = keys.map((key) => {
-      let targetHandle = "left"
-      if (key === "trend") targetHandle = "top"
-      if (key === "news") targetHandle = "bottom"
-      
-      return {
-        id: `${key}-decision`,
-        source: key,
+    const edges: Edge[] = [
+      {
+        id: "e-trend-decision",
+        source: "trend",
         target: "decision",
-        targetHandle,
+        targetHandle: isMobile ? "top" : "top",
+        type: "smoothstep",
         animated: true,
-        type: "default",
-        style: { stroke: LAYER_CONFIG[key].color, strokeWidth: 1.5, strokeOpacity: 0.3, strokeDasharray: "6 3" },
+        style: { stroke: LAYER_CONFIG.trend.color, strokeWidth: 2, opacity: 0.6 },
+      },
+      {
+        id: "e-liquidity-decision",
+        source: "liquidity",
+        target: "decision",
+        targetHandle: isMobile ? "top" : "left",
+        type: "smoothstep",
+        animated: true,
+        style: { stroke: LAYER_CONFIG.liquidity.color, strokeWidth: 2, opacity: 0.6 },
+      },
+      {
+        id: "e-moneyFlow-decision",
+        source: "moneyFlow",
+        target: "decision",
+        targetHandle: isMobile ? "top" : "left",
+        type: "smoothstep",
+        animated: true,
+        style: { stroke: LAYER_CONFIG.moneyFlow.color, strokeWidth: 2, opacity: 0.6 },
+      },
+      {
+        id: "e-insider-decision",
+        source: "insider",
+        target: "decision",
+        targetHandle: isMobile ? "top" : "left",
+        type: "smoothstep",
+        animated: true,
+        style: { stroke: LAYER_CONFIG.insider.color, strokeWidth: 2, opacity: 0.6 },
+      },
+      {
+        id: "e-news-decision",
+        source: "news",
+        target: "decision",
+        targetHandle: isMobile ? "top" : "bottom",
+        type: "smoothstep",
+        animated: true,
+        style: { stroke: LAYER_CONFIG.news.color, strokeWidth: 2, opacity: 0.6 },
       }
-    })
+    ]
 
     return { initialNodes: nodes, initialEdges: edges }
-  }, [selectedLayer, layersVisible, handleLayerClick, insight, priceData, trendTags])
+  }, [selectedLayer, layersVisible, insight, priceData, trendTags, isMobile])
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
@@ -886,7 +928,7 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
       </div>
 
       {/* React Flow Wrapper */}
-      <div className={`absolute top-0 left-0 bottom-0 transition-all duration-300 ${selectedLayer && insight ? "right-[400px]" : "right-0"}`}>
+      <div className={`absolute top-0 left-0 bottom-0 transition-all duration-300 ${selectedLayer && insight ? (isMobile ? "w-full" : "right-[400px]") : "right-0"}`}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -894,8 +936,8 @@ export function StockAiInsight({ symbol }: { symbol: string }) {
           onEdgesChange={onEdgesChange}
           nodeTypes={nodeTypes}
           onNodeClick={(_event, node) => handleLayerClick(node.id)}
-          fitView
-          fitViewOptions={{ padding: 0.1 }}
+          fitView={isMobile}
+          fitViewOptions={{ padding: 0.2, minZoom: 0.5, maxZoom: 1 }}
           proOptions={{ hideAttribution: true }}
           panOnDrag={false}
           zoomOnScroll={false}

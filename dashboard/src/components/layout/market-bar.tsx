@@ -159,22 +159,22 @@ export function MarketBar() {
             <span>GT:</span>
             <span className="text-foreground font-medium tabular-nums">{formatValue(stockData.totalValue)}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1">
             <span>Mở:</span>
             <span className="text-foreground font-medium tabular-nums">{formatNumber(stockData.openPrice * 1000, 0)}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1">
             <span>Cao:</span>
             <span className="text-emerald-500 font-medium tabular-nums">{formatNumber(stockData.highestPrice * 1000, 0)}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1">
             <span>Thấp:</span>
             <span className="text-red-500 font-medium tabular-nums">{formatNumber(stockData.lowestPrice * 1000, 0)}</span>
           </div>
         </div>
       )}
 
-      <Separator orientation="vertical" className="h-4 mx-1" />
+      <Separator orientation="vertical" className="hidden md:block h-4 mx-1" />
 
       {/* Market Indices - Auto scrolling ticker */}
       <MarketTicker indices={indices} />

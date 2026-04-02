@@ -74,9 +74,10 @@ export class ArenaService {
     });
 
     if (!account) {
-      throw new BadRequestException(
-        'Chưa kích hoạt đấu trường ảo. Vui lòng kích hoạt trước.',
-      );
+      return {
+        message: 'Chưa kích hoạt đấu trường ảo. Vui lòng kích hoạt trước.',
+        data: null,
+      };
     }
 
     const pendingOrders = await this.prisma.virtualOrder.count({
@@ -260,7 +261,12 @@ export class ArenaService {
 
   /** Lấy danh sách lệnh chờ */
   async getPendingOrders(userId: string) {
-    const account = await this.getActiveAccount(userId);
+    let account;
+    try {
+      account = await this.getActiveAccount(userId);
+    } catch {
+      return { message: 'Chưa kích hoạt', data: [] };
+    }
     const orders = await this.prisma.virtualOrder.findMany({
       where: { accountId: account.id, status: 'PENDING' },
       orderBy: { createdAt: 'desc' },
@@ -360,7 +366,16 @@ export class ArenaService {
   // ============ Order History ============
 
   async getOrders(userId: string, page = 1, limit = 20, status?: string) {
-    const account = await this.getActiveAccount(userId);
+    let account;
+    try {
+      account = await this.getActiveAccount(userId);
+    } catch {
+      return {
+        message: 'Chưa kích hoạt',
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+      };
+    }
     const where: any = { accountId: account.id };
     if (status) where.status = status;
 
@@ -382,7 +397,12 @@ export class ArenaService {
   }
 
   async getPortfolio(userId: string) {
-    const account = await this.getActiveAccount(userId);
+    let account;
+    try {
+      account = await this.getActiveAccount(userId);
+    } catch {
+      return { message: 'Chưa kích hoạt', data: [] };
+    }
     const portfolio = await this.prisma.virtualPortfolio.findMany({
       where: { accountId: account.id },
       orderBy: { symbol: 'asc' },

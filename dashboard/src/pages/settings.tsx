@@ -230,7 +230,7 @@ export default function SettingsPage() {
               <p className="text-[10px] text-muted-foreground">Email không thể thay đổi</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="s-name" className="text-xs">Họ và tên</Label>
                 <div className="relative">
@@ -240,7 +240,7 @@ export default function SettingsPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Nguyễn Văn A"
-                    className="h-9 pl-9 text-sm"
+                    className="h-10 pl-9 text-sm"
                   />
                 </div>
               </div>
@@ -253,7 +253,7 @@ export default function SettingsPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="0912 345 678"
-                    className="h-9 pl-9 text-sm"
+                    className="h-10 pl-9 text-sm"
                   />
                 </div>
               </div>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
             <span className="text-sm font-semibold">Bảo mật</span>
           </div>
           <form onSubmit={handleChangePassword} className="p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="s-newpw" className="text-xs">Mật khẩu mới</Label>
                 <div className="relative">
@@ -288,7 +288,7 @@ export default function SettingsPage() {
                     placeholder="••••••••"
                     minLength={6}
                     required
-                    className="h-9 pl-9 pr-9 text-sm"
+                    className="h-10 pl-9 pr-9 text-sm"
                   />
                   <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
                     {showPw ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                     placeholder="••••••••"
                     minLength={6}
                     required
-                    className="h-9 pl-9 text-sm"
+                    className="h-10 pl-9 text-sm"
                   />
                 </div>
               </div>

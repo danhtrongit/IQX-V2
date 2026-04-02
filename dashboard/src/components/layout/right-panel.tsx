@@ -273,7 +273,7 @@ export function RightPanel() {
   return (
     <aside
       id="right-panel"
-      className="flex w-72 shrink-0 flex-col border-l border-border bg-card"
+      className="flex w-full md:w-72 shrink-0 flex-col border-l border-border bg-card"
     >
       {/* Stock Search */}
       <div id="stock-search" className="p-2 border-b border-border">
@@ -463,16 +463,16 @@ export function RightPanel() {
             value={orderType}
             onValueChange={(v) => setOrderType(v as "buy" | "sell")}
           >
-            <TabsList className="w-full h-7 p-0.5">
+            <TabsList className="w-full h-9 p-0.5 mt-2">
               <TabsTrigger
                 value="buy"
-                className="flex-1 h-full text-[11px] font-semibold data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
+                className="flex-1 h-full text-xs font-semibold data-[state=active]:bg-emerald-500 data-[state=active]:text-white"
               >
                 MUA
               </TabsTrigger>
               <TabsTrigger
                 value="sell"
-                className="flex-1 h-full text-[11px] font-semibold data-[state=active]:bg-red-500 data-[state=active]:text-white"
+                className="flex-1 h-full text-xs font-semibold data-[state=active]:bg-red-500 data-[state=active]:text-white"
               >
                 BÁN
               </TabsTrigger>
@@ -481,7 +481,7 @@ export function RightPanel() {
 
           {/* Order Type Select */}
           <Select value={orderMethod} onValueChange={setOrderMethod}>
-            <SelectTrigger className="h-7 text-xs">
+            <SelectTrigger className="h-9 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -494,19 +494,19 @@ export function RightPanel() {
 
           {/* Price Input */}
           <div className="space-y-1">
-            <label className="text-[10px] text-muted-foreground font-medium">
+            <label className="text-xs text-muted-foreground font-medium">
               Giá
             </label>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="size-7 shrink-0 text-xs"
+              <Button variant="outline" size="icon" className="size-9 shrink-0 text-sm"
                 onClick={() => setPrice(String(Math.max(0, numPrice - 100)))}
               >−</Button>
               <Input
                 value={displayPrice}
                 onChange={(e) => setPrice(e.target.value)}
-                className="h-7 text-center text-xs font-semibold tabular-nums"
+                className="h-9 text-center text-sm font-semibold tabular-nums"
               />
-              <Button variant="outline" size="icon" className="size-7 shrink-0 text-xs"
+              <Button variant="outline" size="icon" className="size-9 shrink-0 text-sm"
                 onClick={() => setPrice(String(numPrice + 100))}
               >+</Button>
             </div>
@@ -515,27 +515,27 @@ export function RightPanel() {
           {/* Volume Input */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] text-muted-foreground font-medium">
+              <label className="text-xs text-muted-foreground font-medium">
                 Khối lượng
               </label>
               {orderType === "sell" && position && (
-                <span className="text-[10px] text-muted-foreground">Tối đa: {position.quantity.toLocaleString("vi-VN")}</span>
+                <span className="text-xs text-muted-foreground">Tối đa: {position.quantity.toLocaleString("vi-VN")}</span>
               )}
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="size-7 shrink-0 text-xs"
+              <Button variant="outline" size="icon" className="size-9 shrink-0 text-sm"
                 onClick={() => setVolume(String(Math.max(100, numVolume - 100)))}
               >−</Button>
               <Input
                 value={volume}
                 onChange={(e) => setVolume(e.target.value)}
-                className="h-7 text-center text-xs font-semibold tabular-nums"
+                className="h-9 text-center text-sm font-semibold tabular-nums"
               />
-              <Button variant="outline" size="icon" className="size-7 shrink-0 text-xs"
+              <Button variant="outline" size="icon" className="size-9 shrink-0 text-sm"
                 onClick={() => setVolume(String(numVolume + 100))}
               >+</Button>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 pt-1">
               {[10, 25, 50, 100].map((pct) => {
                 const handlePct = () => {
                   if (orderType === "buy" && account && numPrice > 0) {
@@ -557,7 +557,7 @@ export function RightPanel() {
           </div>
 
           {/* Order Summary */}
-          <div className="bg-muted/50 rounded-md p-2 space-y-0.5 text-[10px]">
+          <div className="bg-muted/50 rounded-md p-2 space-y-1 text-xs mt-2">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Giá trị</span>
               <span className="font-medium text-foreground tabular-nums">
@@ -571,9 +571,9 @@ export function RightPanel() {
               </span>
             </div>
             <Separator className="my-1" />
-            <div className="flex justify-between font-semibold">
+            <div className="flex justify-between font-semibold text-sm">
               <span>Tổng</span>
-              <span className="tabular-nums">
+              <span className="tabular-nums text-primary">
                 {orderValue > 0 ? formatVnd(orderValue + fee) : "—"}
               </span>
             </div>
@@ -583,7 +583,7 @@ export function RightPanel() {
           <Button
             onClick={handlePlaceOrder}
             disabled={isSubmitting}
-            className={`w-full h-9 text-xs font-bold ${
+            className={`w-full mt-2 h-10 text-xs font-bold shadow-md ${
               orderType === "buy"
                 ? "bg-emerald-500 hover:bg-emerald-600 text-white"
                 : "bg-red-500 hover:bg-red-600 text-white"

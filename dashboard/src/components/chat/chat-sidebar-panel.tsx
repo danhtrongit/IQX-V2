@@ -799,7 +799,7 @@ export function ChatSidebarPanel() {
 
   if (!isAuthenticated) {
     return (
-      <aside className="flex w-72 shrink-0 flex-col border-l border-border bg-card items-center justify-center">
+      <aside className="flex w-full md:w-72 shrink-0 flex-col border-l border-border bg-card items-center justify-center">
         <MessageCircle className="size-10 mb-3 text-muted-foreground opacity-30" />
         <p className="text-xs text-muted-foreground mb-3">Đăng nhập để sử dụng Chat</p>
         <Button size="sm" className="text-xs h-7" onClick={() => setShowAuthModal(true)}>
@@ -811,7 +811,7 @@ export function ChatSidebarPanel() {
   }
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-border bg-card">
+    <aside className="flex w-full md:w-72 shrink-0 flex-col border-l border-border bg-card">
       {currentRoom ? (
         <ChatRoomView room={currentRoom} onBack={handleBack} />
       ) : view === "create" ? (

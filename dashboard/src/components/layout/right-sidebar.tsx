@@ -3,6 +3,7 @@ import { NewsFeedPanel } from "@/components/news/news-feed-panel"
 import { ChatSidebarPanel } from "@/components/chat/chat-sidebar-panel"
 import { WatchlistPanel } from "@/components/watchlist/watchlist-panel"
 import { RightPanel as TradingPanel } from "./right-panel"
+import { X } from "lucide-react"
 
 /**
  * Dynamic right sidebar that switches between panels:
@@ -12,18 +13,45 @@ import { RightPanel as TradingPanel } from "./right-panel"
  * - watchlist: Watchlist, holdings, and trade history
  */
 export function RightSidebar() {
-  const { activePanel } = useSidebar()
+  const { activePanel, isOpen, setIsOpen } = useSidebar()
 
-  switch (activePanel) {
-    case "news":
-      return <NewsFeedPanel />
-    case "chat":
-      return <ChatSidebarPanel />
-    case "trading":
-      return <TradingPanel />
-    case "watchlist":
-      return <WatchlistPanel />
-    default:
-      return <NewsFeedPanel />
+  const getPanelContent = () => {
+    switch (activePanel) {
+      case "news":
+        return <NewsFeedPanel />
+      case "chat":
+        return <ChatSidebarPanel />
+      case "trading":
+        return <TradingPanel />
+      case "watchlist":
+        return <WatchlistPanel />
+      default:
+        return <NewsFeedPanel />
+    }
   }
+
+  const panelNames: Record<string, string> = {
+    news: "Tin tức",
+    chat: "Cộng đồng",
+    trading: "Đặt lệnh",
+    watchlist: "Danh mục",
+  }
+
+  return (
+    <aside
+      className={`fixed inset-x-0 bottom-[52px] top-[76px] z-40 bg-background border-t shadow-2xl transition-transform duration-300 md:static md:w-[320px] lg:w-[360px] md:z-auto md:translate-y-0 md:border-l md:border-t-0 md:shadow-none flex flex-col ${
+        isOpen ? "translate-y-0" : "translate-y-full"
+      }`}
+    >
+      <div className="md:hidden flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+        <span className="text-xs font-bold uppercase text-foreground">{panelNames[activePanel] || activePanel}</span>
+        <button onClick={() => setIsOpen(false)} className="p-1 rounded-md hover:bg-muted text-muted-foreground">
+          <X className="size-4" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+        {getPanelContent()}
+      </div>
+    </aside>
+  )
 }
