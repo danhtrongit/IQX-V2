@@ -615,7 +615,7 @@ export function WatchlistPanel() {
 
   if (!isAuthenticated) {
     return (
-      <aside className="flex w-full md:w-72 shrink-0 flex-col border-l border-border bg-card items-center justify-center">
+      <aside className="flex w-full shrink-0 flex-col bg-card items-center justify-center h-full">
         <Eye className="size-8 mb-2 text-muted-foreground opacity-20" />
         <p className="text-[10px] text-muted-foreground mb-2">Đăng nhập để sử dụng</p>
         <Button size="sm" className="text-[10px] h-6" onClick={() => setShowAuthModal(true)}>
@@ -626,7 +626,7 @@ export function WatchlistPanel() {
   }
 
   return (
-    <aside className="flex w-full md:w-72 shrink-0 flex-col border-l border-border bg-card">
+    <aside className="flex w-full shrink-0 flex-col bg-card h-full">
       {/* Tabs */}
       <div className="flex border-b border-border shrink-0">
         {TABS.map((tab) => {

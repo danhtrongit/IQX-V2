@@ -273,7 +273,7 @@ export function RightPanel() {
   return (
     <aside
       id="right-panel"
-      className="flex w-full md:w-72 shrink-0 flex-col border-l border-border bg-card"
+      className="flex w-full shrink-0 flex-col bg-card h-full"
     >
       {/* Stock Search */}
       <div id="stock-search" className="p-2 border-b border-border">

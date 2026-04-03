@@ -5,6 +5,25 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1"
 
+// ── News mark types (exported for popover) ──
+
+export interface NewsMarkItem {
+  id: string
+  title: string
+  slug: string
+  sentiment: string | null
+  sourceName: string | null
+  updatedAt: string
+  imageUrl: string | null
+}
+
+export interface NewsMarkGroup {
+  dateKey: string
+  timestamp: number
+  items: NewsMarkItem[]
+  dominantSentiment: "positive" | "negative" | "neutral"
+}
+
 // Resolution mapping: TradingView resolution → our API interval
 const RESOLUTION_MAP: Record<string, string> = {
   "1": "1m",
@@ -37,8 +56,9 @@ interface DataFeedConfig {
   symbols_types: { name: string; value: string }[]
 }
 
-const CONFIG: DataFeedConfig = {
+const CONFIG: DataFeedConfig & { supports_marks: boolean } = {
   supported_resolutions: ["1", "5", "15", "30", "60", "D", "W", "M"],
+  supports_marks: true,
   exchanges: [
     { value: "HOSE", name: "HOSE", desc: "Sở giao dịch TP.HCM" },
     { value: "HNX", name: "HNX", desc: "Sở giao dịch Hà Nội" },
@@ -129,6 +149,100 @@ async function fetchBars(
   } catch {
     return []
   }
+}
+
+// ── News marks helpers ──
+
+const newsMarkCache = new Map<string, NewsMarkGroup[]>()
+
+function getDominantSentiment(items: NewsMarkItem[]): "positive" | "negative" | "neutral" {
+  let pos = 0, neg = 0
+  for (const item of items) {
+    const s = (item.sentiment || "").toLowerCase()
+    if (s === "positive") pos++
+    else if (s === "negative") neg++
+  }
+  if (pos > neg) return "positive"
+  if (neg > pos) return "negative"
+  return "neutral"
+}
+
+function sentimentToColor(s: "positive" | "negative" | "neutral"): { border: string; background: string } {
+  switch (s) {
+    case "positive": return { border: "#10b981", background: "#10b981" }
+    case "negative": return { border: "#ef4444", background: "#ef4444" }
+    default: return { border: "#f59e0b", background: "#f59e0b" }
+  }
+}
+
+async function fetchNewsMarks(symbol: string, from: number, to: number): Promise<NewsMarkGroup[]> {
+  const cacheKey = `${symbol}-${from}-${to}`
+  if (newsMarkCache.has(cacheKey)) return newsMarkCache.get(cacheKey)!
+
+  try {
+    const fromDate = new Date(from * 1000).toISOString().slice(0, 10)
+    // Cap toDate to today — TradingView may pass far-future timestamps
+    const rawTo = new Date(to * 1000)
+    const now = new Date()
+    const toDate = (rawTo > now ? now : rawTo).toISOString().slice(0, 10)
+
+    const resp = await fetch(
+      `${API_BASE}/ai-news/news?ticker=${encodeURIComponent(symbol)}&updateFrom=${fromDate}&updateTo=${toDate}&pageSize=100&language=vi`
+    )
+    if (!resp.ok) return []
+
+    const json = await resp.json()
+    const items: any[] = json?.data || []
+
+    // Group by date (YYYY-MM-DD)
+    const grouped = new Map<string, NewsMarkItem[]>()
+    for (const item of items) {
+      const dateStr = (item.updatedAt || "").slice(0, 10)
+      if (!dateStr) continue
+      if (!grouped.has(dateStr)) grouped.set(dateStr, [])
+      grouped.get(dateStr)!.push({
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        sentiment: item.sentiment,
+        sourceName: item.sourceName,
+        updatedAt: item.updatedAt,
+        imageUrl: item.imageUrl,
+      })
+    }
+
+    const result: NewsMarkGroup[] = []
+    for (const [dateKey, newsItems] of grouped) {
+      // Convert date to start-of-day UTC+7 timestamp
+      const d = new Date(dateKey + "T00:00:00+07:00")
+      result.push({
+        dateKey,
+        timestamp: Math.floor(d.getTime() / 1000),
+        items: newsItems,
+        dominantSentiment: getDominantSentiment(newsItems),
+      })
+    }
+
+    newsMarkCache.set(cacheKey, result)
+    // Keep cache small
+    if (newsMarkCache.size > 20) {
+      const firstKey = newsMarkCache.keys().next().value
+      if (firstKey) newsMarkCache.delete(firstKey)
+    }
+
+    return result
+  } catch {
+    return []
+  }
+}
+
+/** Get cached news marks for a specific mark ID (dateKey) */
+export function getNewsMarkGroup(_symbol: string, markId: string): NewsMarkGroup | null {
+  for (const groups of newsMarkCache.values()) {
+    const found = groups.find(g => g.dateKey === markId)
+    if (found) return found
+  }
+  return null
 }
 
 function formatDateParam(d: Date): string {
@@ -306,6 +420,29 @@ export function createDataFeed(): any {
           }
         })
         .catch((err) => onError(err?.message || "Failed to fetch bars"))
+    },
+
+    getMarks(
+      symbolInfo: any,
+      from: number,
+      to: number,
+      onDataCallback: (marks: any[]) => void,
+      _resolution: string,
+    ) {
+      fetchNewsMarks(symbolInfo.ticker, from, to)
+        .then((groups) => {
+          const marks = groups.map((group) => ({
+            id: group.dateKey,
+            time: group.timestamp,
+            color: sentimentToColor(group.dominantSentiment),
+            text: group.items.map((n) => n.title).join("\n"),
+            label: String(group.items.length),
+            labelFontColor: "#ffffff",
+            minSize: 20,
+          }))
+          onDataCallback(marks)
+        })
+        .catch(() => onDataCallback([]))
     },
 
     subscribeBars(

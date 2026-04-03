@@ -7,6 +7,7 @@ import {
   Footer,
 } from "@/components/layout"
 import { TVChart } from "@/components/chart/tv-chart"
+import { NewsMarkPopover } from "@/components/chart/news-mark-popover"
 import { StockOverview } from "@/components/stock/stock-overview"
 import { StockFinancials } from "@/components/stock/stock-financials"
 import { StockAiInsight } from "@/components/stock/stock-ai-insight"
@@ -34,6 +35,7 @@ export default function StockPage() {
   })
   const [activeTab, setActiveTab] = useState<StockTab>("chart")
   const [isAiInsightOpen, setIsAiInsightOpen] = useState(false)
+  const [activeMarkId, setActiveMarkId] = useState<string | number | null>(null)
   const dragControls = useDragControls()
 
   const handleTVSymbolChanged = useCallback(
@@ -66,7 +68,7 @@ export default function StockPage() {
           <Header />
           <MarketBar />
 
-          <div className="flex flex-1 min-h-0 relative">
+          <div className="flex flex-1 min-h-0 pb-[52px] md:pb-0 relative">
             <section className="flex flex-1 flex-col min-w-0 bg-background">
               {/* Tab Navigation */}
               <div className="flex items-center border-b border-border px-2 shrink-0">
@@ -93,7 +95,7 @@ export default function StockPage() {
               {/* Tab Content */}
               <div className="flex-1 min-h-0 relative">
                 {activeTab === "chart" && (
-                  <TVChart symbol={ticker} interval="D" theme="dark" onSymbolChanged={handleTVSymbolChanged} />
+                  <TVChart symbol={ticker} interval="D" theme="dark" onSymbolChanged={handleTVSymbolChanged} onMarkClick={setActiveMarkId} />
                 )}
                 {activeTab === "overview" && (
                   <StockOverview symbol={ticker} />
@@ -109,6 +111,13 @@ export default function StockPage() {
           </div>
 
           <Footer />
+
+          {/* News Mark Popover */}
+          <NewsMarkPopover
+            symbol={ticker}
+            markId={activeMarkId}
+            onClose={() => setActiveMarkId(null)}
+          />
 
           {/* Draggable AI Insight Window */}
           <AnimatePresence>

@@ -3,7 +3,11 @@ import { useNavigate } from "react-router"
 import { TVChart } from "@/components/chart/tv-chart"
 import { useSymbol } from "@/contexts/symbol-context"
 
-export function CenterPanel() {
+interface CenterPanelProps {
+  onMarkClick?: (markId: string | number) => void
+}
+
+export function CenterPanel({ onMarkClick }: CenterPanelProps = {}) {
   const { symbol } = useSymbol()
   const navigate = useNavigate()
 
@@ -29,6 +33,7 @@ export function CenterPanel() {
           interval="D"
           theme="dark"
           onSymbolChanged={handleSymbolChanged}
+          onMarkClick={onMarkClick}
         />
       </div>
     </section>

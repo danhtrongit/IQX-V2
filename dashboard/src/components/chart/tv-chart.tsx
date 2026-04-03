@@ -8,6 +8,7 @@ interface TVChartProps {
   autosize?: boolean
   className?: string
   onSymbolChanged?: (symbol: string) => void
+  onMarkClick?: (markId: string | number) => void
 }
 
 function TVChartInner({
@@ -17,15 +18,21 @@ function TVChartInner({
   autosize = true,
   className = "",
   onSymbolChanged,
+  onMarkClick,
 }: TVChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetRef = useRef<any>(null)
   const onSymbolChangedRef = useRef(onSymbolChanged)
+  const onMarkClickRef = useRef(onMarkClick)
 
   // Keep ref in sync to avoid re-creating widget on callback change
   useEffect(() => {
     onSymbolChangedRef.current = onSymbolChanged
   }, [onSymbolChanged])
+
+  useEffect(() => {
+    onMarkClickRef.current = onMarkClick
+  }, [onMarkClick])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -132,6 +139,13 @@ function TVChartInner({
 
           if (newSymbol && onSymbolChangedRef.current) {
             onSymbolChangedRef.current(newSymbol)
+          }
+        })
+
+        // Subscribe to mark clicks for news popover
+        widget.subscribe("onMarkClick", (markId: string | number) => {
+          if (onMarkClickRef.current) {
+            onMarkClickRef.current(markId)
           }
         })
       })

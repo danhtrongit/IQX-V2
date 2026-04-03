@@ -39,7 +39,7 @@ export function RightSidebar() {
 
   return (
     <aside
-      className={`fixed inset-x-0 bottom-[52px] top-[76px] z-40 bg-background border-t shadow-2xl transition-transform duration-300 md:static md:w-[320px] lg:w-[360px] md:z-auto md:translate-y-0 md:border-l md:border-t-0 md:shadow-none flex flex-col ${
+      className={`fixed inset-x-0 bottom-[52px] top-[76px] z-40 bg-background border-t shadow-2xl transition-transform duration-300 md:static md:w-[320px] lg:w-[360px] md:shrink-0 md:z-auto md:translate-y-0 md:border-l md:border-t-0 md:shadow-none flex flex-col overflow-hidden ${
         isOpen ? "translate-y-0" : "translate-y-full"
       }`}
     >

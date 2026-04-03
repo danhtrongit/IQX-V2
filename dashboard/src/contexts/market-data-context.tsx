@@ -10,6 +10,7 @@ import {
 } from "react"
 import {
   fetchPriceBoard,
+  fetchMarketIndices,
   type PriceBoardData,
   type IndexData,
 } from "@/hooks/use-market-data"
@@ -40,7 +41,8 @@ const PRICE_INTERVAL = 5_000  // 5s — unified for all consumers
 export function MarketDataProvider({ children }: { children: ReactNode }) {
   const [priceMap, setPriceMap] = useState<Record<string, PriceBoardData>>({})
   const [indices, setIndices] = useState<IndexData[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isPriceLoading, setIsPriceLoading] = useState(true)
+  const [isIndicesLoading, setIsIndicesLoading] = useState(true)
 
   // Ref-counted subscription tracking
   // Key: uppercase symbol, Value: number of active subscribers
@@ -92,7 +94,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!symbolsKey) {
-      setIsLoading(false)
+      setIsPriceLoading(false)
       return
     }
 
@@ -100,18 +102,19 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     let cancelled = false
 
     const load = async () => {
-      const results = await fetchPriceBoard(syms)
-      if (cancelled) return
-      const map: Record<string, PriceBoardData> = {}
-      for (const item of results) {
-        map[item.symbol] = item
-      }
-      // Merge: keep data for symbols not in this batch
-      setPriceMap((prev) => ({ ...prev, ...map }))
-      setIsLoading(false)
+      try {
+        const results = await fetchPriceBoard(syms)
+        if (cancelled) return
+        const map: Record<string, PriceBoardData> = {}
+        for (const item of results) {
+          map[item.symbol] = item
+        }
+        setPriceMap((prev) => ({ ...prev, ...map }))
+      } catch { /* silently ignore */ }
+      setIsPriceLoading(false)
     }
 
-    load() // immediate first fetch
+    load()
     const timer = setInterval(load, PRICE_INTERVAL)
 
     return () => {
@@ -120,46 +123,71 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     }
   }, [symbolsKey])
 
-  // ── Indices: WebSocket Subscription ──
+  // ── Indices: WebSocket + HTTP Fallback ──
 
   useEffect(() => {
+    const INDEX_DISPLAY: Record<string, string> = {
+      VNINDEX: "VN-Index",
+      VN30: "VN30",
+      HNX: "HNX-Index",
+      HNX30: "HNX30",
+      UPCOM: "UPCOM",
+    }
+    const mainKeys = ["VNINDEX", "VN30", "HNX", "UPCOM"]
+
+    interface RawSocketIndex { symbol: string; price: number | string; change: number | string; changePercent: number | string }
+
+    const mapRawToIndices = (rawList: RawSocketIndex[]): IndexData[] => {
+      const filtered = rawList.filter(r => mainKeys.includes(r.symbol))
+      const mapped: IndexData[] = filtered.map(r => {
+        const price = Number(r.price) || 0
+        const change = Number(r.change) || 0
+        const changePct = Number(r.changePercent) || 0
+        return {
+          name: INDEX_DISPLAY[r.symbol] || r.symbol,
+          value: price,
+          change: change,
+          changePercent: changePct,
+          trend: change > 0 ? "up" : change < 0 ? "down" : "flat",
+        }
+      })
+      mapped.sort((a, b) => {
+        const aKey = Object.keys(INDEX_DISPLAY).find(k => INDEX_DISPLAY[k] === a.name) || a.name
+        const bKey = Object.keys(INDEX_DISPLAY).find(k => INDEX_DISPLAY[k] === b.name) || b.name
+        return mainKeys.indexOf(aKey) - mainKeys.indexOf(bKey)
+      })
+      return mapped
+    }
+
+    let cancelled = false
+
+    // 1) HTTP fallback: fetch immediately so we don't wait for socket
+    fetchMarketIndices().then((rawList) => {
+      if (cancelled || !rawList || rawList.length === 0) return
+      setIndices(mapRawToIndices(rawList))
+      setIsIndicesLoading(false)
+    }).catch(() => { /* ignore */ })
+
+    // 2) Safety timeout: stop loading spinner after 8 seconds regardless
+    const timeout = setTimeout(() => {
+      if (!cancelled) setIsIndicesLoading(false)
+    }, 8000)
+
+    // 3) Socket for live updates
     const s = connectMarketSocket()
 
-    const onIndicesUpdate = (rawList: any[]) => {
+    const onIndicesUpdate = (rawList: RawSocketIndex[]) => {
       if (rawList && rawList.length > 0) {
-        const INDEX_DISPLAY: Record<string, string> = {
-          VNINDEX: "VN-Index",
-          VN30: "VN30",
-          HNX: "HNX-Index",
-          HNX30: "HNX30",
-          UPCOM: "UPCOM",
-        }
-
-        // Only take the main indices we care about
-        const mainKeys = ["VNINDEX", "VN30", "HNX", "UPCOM"]
-        const filtered = rawList.filter(r => mainKeys.includes(r.symbol))
-
-        const mapped: IndexData[] = filtered.map(r => ({
-          name: INDEX_DISPLAY[r.symbol] || r.symbol,
-          value: r.price,
-          change: r.change,
-          changePercent: r.changePercent,
-          trend: r.change > 0 ? "up" : r.change < 0 ? "down" : "flat",
-        }))
-
-        // Sort properly
-        mapped.sort((a, b) => mainKeys.indexOf(Object.keys(INDEX_DISPLAY).find(k => INDEX_DISPLAY[k] === a.name) || a.name) - mainKeys.indexOf(Object.keys(INDEX_DISPLAY).find(k => INDEX_DISPLAY[k] === b.name) || b.name))
-
-        setIndices(mapped)
-        setIsLoading(false)
+        setIndices(mapRawToIndices(rawList))
+        setIsIndicesLoading(false)
       }
     }
 
     s.on("market_indices_update", onIndicesUpdate)
-    
-    // Fallback/Initial Request if socket takes time? We can wait.
 
     return () => {
+      cancelled = true
+      clearTimeout(timeout)
       s.off("market_indices_update", onIndicesUpdate)
       disconnectMarketSocket()
     }
@@ -179,6 +207,8 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
               map[item.symbol] = item
             }
             setPriceMap((prev) => ({ ...prev, ...map }))
+          }).catch(() => {
+            /* ignore visibility refresh errors */
           })
         }
         // Indices are automatically updated by websocket on reconnection if needed.
@@ -188,6 +218,8 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", handleVisibility)
     return () => document.removeEventListener("visibilitychange", handleVisibility)
   }, [])
+
+  const isLoading = isPriceLoading || isIndicesLoading
 
   const value = useMemo(
     () => ({ priceMap, indices, isLoading, subscribe }),

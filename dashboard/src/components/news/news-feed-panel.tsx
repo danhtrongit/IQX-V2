@@ -172,7 +172,7 @@ export function NewsFeedPanel() {
   return (
     <aside
       id="news-feed-panel"
-      className="flex w-full md:w-72 shrink-0 flex-col border-l border-border bg-card"
+      className="flex w-full shrink-0 flex-col bg-card h-full"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">

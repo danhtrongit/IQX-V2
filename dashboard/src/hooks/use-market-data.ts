@@ -96,6 +96,38 @@ export async function fetchIndexData(): Promise<IndexData[]> {
   ).filter(Boolean) as IndexData[]
 }
 
+// ── Fetch Market Indices (raw format matching socket data) ──
+
+interface RawIndexItem {
+  symbol: string
+  price: number
+  change: number
+  changePercent: number
+}
+
+export async function fetchMarketIndices(): Promise<RawIndexItem[]> {
+  // Primary: use the dedicated /trading/indices REST endpoint (cached from backend cron)
+  try {
+    const resp = await fetch(`${API_BASE}/trading/indices`)
+    if (resp.ok) {
+      const json = await resp.json()
+      const data = json?.data
+      if (data && Array.isArray(data) && data.length > 0) {
+        return data as RawIndexItem[]
+      }
+    }
+  } catch { /* fallback below */ }
+
+  // Fallback: convert fetchIndexData results
+  const indexData = await fetchIndexData()
+  return indexData.map((d) => ({
+    symbol: Object.keys(INDEX_DISPLAY).find((k) => INDEX_DISPLAY[k] === d.name) || d.name,
+    price: d.value,
+    change: d.change,
+    changePercent: d.changePercent,
+  }))
+}
+
 // ── Fetch PriceBoard (batch) ──
 
 export async function fetchPriceBoard(symbols: string[]): Promise<PriceBoardData[]> {

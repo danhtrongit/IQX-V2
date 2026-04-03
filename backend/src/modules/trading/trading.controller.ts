@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TradingService } from './trading.service';
 import { Public } from '../../common/decorators/public.decorator';
@@ -26,5 +26,11 @@ export class TradingController {
   })
   getPriceBoard(@Body('symbols') symbols: string[]) {
     return this.tradingService.getPriceBoard(symbols || []);
+  }
+
+  @Get('indices')
+  @ApiOperation({ summary: 'Chỉ số thị trường (VNINDEX, VN30, HNX...)' })
+  getIndices() {
+    return this.tradingService.getLatestIndices();
   }
 }

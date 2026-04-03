@@ -9,6 +9,8 @@ import { MarketDataGateway } from './market-data.gateway';
 @Injectable()
 export class TradingService {
   private readonly logger = new Logger(TradingService.name);
+  private cachedIndices: any[] = [];
+
 
   constructor(
     private http: ProxyHttpService,
@@ -129,26 +131,43 @@ export class TradingService {
           ALL: 'VNALL',
         };
 
-        const result = raw.map((item) => ({
-          symbol: KBS_CODE_TO_SYMBOL[item.symbol] || item.symbol,
-          price: item.MI,
-          change: item.ICH,
-          changePercent: item.IPC,
-          open: item.O,
-          high: item.H,
-          low: item.L,
-          volume: item.AV,
-          value: item.TVA,
-          advances: item.ADV,
-          declines: item.DE,
-          noChange: item.NC,
-          timestamp: item.time,
-        }));
+        // KBS index API uses different field names for code: 
+        // Try SB (like price board), MC, CD, or fall back to order-based matching
+        const codesArr = codes.split(',');
 
+        const result = raw.map((item: any, idx: number) => {
+          // Try multiple possible field names for the index code
+          const rawCode = item.SB || item.MC || item.CD || item.symbol || codesArr[idx] || '';
+          return {
+            symbol: KBS_CODE_TO_SYMBOL[rawCode] || rawCode,
+            price: item.MI,
+            change: item.ICH,
+            changePercent: item.IPC,
+            open: item.O,
+            high: item.H,
+            low: item.L,
+            volume: item.AV,
+            value: item.TVA,
+            advances: item.ADV,
+            declines: item.DE,
+            noChange: item.NC,
+            timestamp: item.time,
+          };
+        });
+
+        this.cachedIndices = result;
         this.marketGateway.broadcastMarketIndices(result);
       }
     } catch (error) {
       // Catch ngầm để không spam console, hoặc bật lên nếu thấy cần thiết!
     }
+  }
+
+  /** Trả về dữ liệu indices đã cache từ polling */
+  getLatestIndices() {
+    return {
+      message: 'Thành công',
+      data: this.cachedIndices,
+    };
   }
 }

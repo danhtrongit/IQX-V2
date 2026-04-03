@@ -125,10 +125,10 @@ export class QuoteService {
 
     return items.map((item) => ({
       time: item.time || item.t,
-      open: item.o ? item.o / 1000 : null,
-      high: item.h ? item.h / 1000 : null,
-      low: item.l ? item.l / 1000 : null,
-      close: item.c ? item.c / 1000 : null,
+      open: item.o ?? null,
+      high: item.h ?? null,
+      low: item.l ?? null,
+      close: item.c ?? null,
       volume: item.v || item.volume,
       value: item.va || item.value || null,
     }));
