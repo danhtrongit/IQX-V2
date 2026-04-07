@@ -6,6 +6,10 @@ import {
   GetAllocatedIcbDetailDto,
   GetAllocatedIcbDto,
 } from './dto/get-allocated-icb.dto';
+import {
+  GetAllSectorSignalsDto,
+  GetSectorSignalDto,
+} from './dto/get-sector-signal.dto';
 
 @ApiTags('Giao dịch')
 @Public()
@@ -46,6 +50,24 @@ export class TradingController {
   @ApiBody({ type: GetAllocatedIcbDetailDto })
   getAllocatedIcbDetail(@Body() payload: GetAllocatedIcbDetailDto) {
     return this.tradingService.getAllocatedIcbDetail(payload);
+  }
+
+  @Post('sector-signals')
+  @ApiOperation({
+    summary: 'Phân loại trạng thái ngành theo D/W/M và thanh khoản',
+  })
+  @ApiBody({ type: GetSectorSignalDto })
+  getSectorSignals(@Body() payload: GetSectorSignalDto): Promise<any> {
+    return this.tradingService.getSectorSignals(payload);
+  }
+
+  @Post('sector-signals/all-levels')
+  @ApiOperation({
+    summary: 'Lấy toàn bộ trạng thái ngành ở mọi level theo D/W/M và thanh khoản',
+  })
+  @ApiBody({ type: GetAllSectorSignalsDto })
+  getAllSectorSignals(@Body() payload: GetAllSectorSignalsDto): Promise<any> {
+    return this.tradingService.getAllSectorSignals(payload);
   }
 
   @Get('indices')
