@@ -5,12 +5,48 @@ import { DATA_SOURCES } from '../../common/constants/data-sources.constant';
 import { KBS_EXCHANGE_MAP } from '../../common/constants/mappings.constant';
 import { MESSAGES } from '../../common/constants/messages.constant';
 import { MarketDataGateway } from './market-data.gateway';
+import {
+  GetAllocatedIcbDetailDto,
+  GetAllocatedIcbDto,
+} from './dto/get-allocated-icb.dto';
+
+interface AllocatedIcbRawItem {
+  icb_code: number;
+  icbChangePercent: number | string | null;
+  totalPriceChange: number | string | null;
+  totalMarketCap: number | string | null;
+  totalValue: number | string | null;
+  totalStockIncrease: number | string | null;
+  totalStockDecrease: number | string | null;
+  totalStockNoChange: number | string | null;
+  icbCodeParent: number | null;
+}
+
+interface AllocatedIcbDetailRawStock {
+  symbol: string;
+  refPrice: number | string | null;
+  matchPrice: number | string | null;
+  ceilingPrice: number | string | null;
+  floorPrice: number | string | null;
+  accumulatedVolume: number | string | null;
+  accumulatedValue: number | string | null;
+  organName: string | null;
+  organShortName: string | null;
+  enOrganName: string | null;
+  enOrganShortName: string | null;
+  foreignNetVolume: number | string | null;
+  foreignNetValue: number | string | null;
+  board: string | null;
+}
+
+interface AllocatedIcbDetailRawItem extends AllocatedIcbRawItem {
+  icbDataDetail?: AllocatedIcbDetailRawStock[];
+}
 
 @Injectable()
 export class TradingService {
   private readonly logger = new Logger(TradingService.name);
   private cachedIndices: any[] = [];
-
 
   constructor(
     private http: ProxyHttpService,
@@ -26,6 +62,30 @@ export class TradingService {
       'trading.getPriceBoard',
     );
     return { message: MESSAGES.COMMON.SUCCESS, data };
+  }
+
+  async getAllocatedIcb(payload: GetAllocatedIcbDto) {
+    const data = await this.http.vciPost<AllocatedIcbRawItem[]>(
+      '/market-watch/AllocatedICB/getAllocated',
+      payload,
+    );
+
+    return {
+      message: MESSAGES.COMMON.SUCCESS,
+      data: (data || []).map((item) => this.mapAllocatedIcbItem(item)),
+    };
+  }
+
+  async getAllocatedIcbDetail(payload: GetAllocatedIcbDetailDto) {
+    const data = await this.http.vciPost<AllocatedIcbDetailRawItem>(
+      '/market-watch/AllocatedICB/getAllocatedDetail',
+      payload,
+    );
+
+    return {
+      message: MESSAGES.COMMON.SUCCESS,
+      data: data ? this.mapAllocatedIcbDetailItem(data) : null,
+    };
   }
 
   // ---------- KBS ----------
@@ -131,13 +191,14 @@ export class TradingService {
           ALL: 'VNALL',
         };
 
-        // KBS index API uses different field names for code: 
+        // KBS index API uses different field names for code:
         // Try SB (like price board), MC, CD, or fall back to order-based matching
         const codesArr = codes.split(',');
 
         const result = raw.map((item: any, idx: number) => {
           // Try multiple possible field names for the index code
-          const rawCode = item.SB || item.MC || item.CD || item.symbol || codesArr[idx] || '';
+          const rawCode =
+            item.SB || item.MC || item.CD || item.symbol || codesArr[idx] || '';
           return {
             symbol: KBS_CODE_TO_SYMBOL[rawCode] || rawCode,
             price: item.MI,
@@ -169,5 +230,49 @@ export class TradingService {
       message: 'Thành công',
       data: this.cachedIndices,
     };
+  }
+
+  private mapAllocatedIcbItem(item: AllocatedIcbRawItem) {
+    return {
+      icbCode: item.icb_code,
+      icbChangePercent: this.toNumber(item.icbChangePercent),
+      totalPriceChange: this.toNumber(item.totalPriceChange),
+      totalMarketCap: this.toNumber(item.totalMarketCap),
+      totalValue: this.toNumber(item.totalValue),
+      totalStockIncrease: this.toNumber(item.totalStockIncrease),
+      totalStockDecrease: this.toNumber(item.totalStockDecrease),
+      totalStockNoChange: this.toNumber(item.totalStockNoChange),
+      icbCodeParent: item.icbCodeParent,
+    };
+  }
+
+  private mapAllocatedIcbDetailItem(item: AllocatedIcbDetailRawItem) {
+    return {
+      ...this.mapAllocatedIcbItem(item),
+      stocks: (item.icbDataDetail || []).map((stock) => ({
+        symbol: stock.symbol,
+        referencePrice: this.toNumber(stock.refPrice),
+        matchPrice: this.toNumber(stock.matchPrice),
+        ceilingPrice: this.toNumber(stock.ceilingPrice),
+        floorPrice: this.toNumber(stock.floorPrice),
+        accumulatedVolume: this.toNumber(stock.accumulatedVolume),
+        accumulatedValue: this.toNumber(stock.accumulatedValue),
+        organName: stock.organName,
+        organShortName: stock.organShortName,
+        enOrganName: stock.enOrganName,
+        enOrganShortName: stock.enOrganShortName,
+        foreignNetVolume: this.toNumber(stock.foreignNetVolume),
+        foreignNetValue: this.toNumber(stock.foreignNetValue),
+        exchange: stock.board,
+      })),
+    };
+  }
+
+  private toNumber(value: number | string | null | undefined) {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 }
