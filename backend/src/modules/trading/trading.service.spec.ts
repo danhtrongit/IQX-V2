@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TradingService } from './trading.service';
 import { ProxyHttpService } from '../../common/services/proxy-http.service';
 import { MarketDataGateway } from './market-data.gateway';
+import {
+  RedisCacheService,
+  CacheType,
+} from '../../common/modules/redis-cache/redis-cache.service';
 
 describe('TradingService', () => {
   let service: TradingService;
@@ -11,6 +15,10 @@ describe('TradingService', () => {
     vciPost: jest.Mock;
     vciGraphql: jest.Mock;
   };
+  let cacheService: {
+    get: jest.Mock;
+    set: jest.Mock;
+  };
 
   beforeEach(async () => {
     const mockHttp = {
@@ -19,11 +27,16 @@ describe('TradingService', () => {
       vciPost: jest.fn(),
       vciGraphql: jest.fn(),
     };
+    const mockCacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TradingService,
         { provide: ProxyHttpService, useValue: mockHttp },
+        { provide: RedisCacheService, useValue: mockCacheService },
         {
           provide: MarketDataGateway,
           useValue: { broadcastMarketIndices: jest.fn() },
@@ -33,6 +46,7 @@ describe('TradingService', () => {
 
     service = module.get<TradingService>(TradingService);
     http = module.get(ProxyHttpService);
+    cacheService = module.get(RedisCacheService);
   });
 
   describe('getAllocatedIcb', () => {
@@ -237,6 +251,47 @@ describe('TradingService', () => {
       });
 
       expect(http.vciGraphql).toHaveBeenCalled();
+      expect(cacheService.get).toHaveBeenCalledWith(
+        'trading:sector-signals:HOSE:2700',
+        CacheType.TRADING,
+      );
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'trading:sector-signals:HOSE:2700',
+        {
+          message: 'Thành công',
+          data: {
+            group: 'HOSE',
+            icbCode: 2700,
+            asOfDate: '2025-04-07',
+            item: {
+              icbCode: 2700,
+              icbName: 'Hàng & Dịch vụ Công nghiệp',
+              enIcbName: 'Industrial Goods & Services',
+              icbLevel: 2,
+              icbCodeParent: 2000,
+              input: {
+                D: 1,
+                W: 3,
+                M: 6,
+                VD: 150,
+                VW: 500,
+                VM: 1000,
+                MDW: 1.5,
+                MDM: 0.9,
+                MWM: 2,
+                tradingDaysInWeek: 5,
+                tradingDaysInMonth: 6,
+              },
+              result: {
+                label: 'Hút tiền',
+                matchedLabels: ['Hút tiền'],
+                isExactMatch: true,
+              },
+            },
+          },
+        },
+        CacheType.TRADING,
+      );
       expect(result).toEqual({
         message: 'Thành công',
         data: {
@@ -356,6 +411,43 @@ describe('TradingService', () => {
         matchedLabels: [],
         isExactMatch: false,
       });
+    });
+
+    it('should return cached sector signal response on cache hit', async () => {
+      const cachedResponse = {
+        message: 'Thành công',
+        data: {
+          group: 'HOSE',
+          icbCode: 2700,
+          asOfDate: '2025-04-07',
+          item: {
+            icbCode: 2700,
+            result: {
+              label: 'Hút tiền',
+              matchedLabels: [],
+              isExactMatch: false,
+            },
+          },
+        },
+      };
+      cacheService.get.mockResolvedValue(cachedResponse);
+
+      const result = await service.getSectorSignals({
+        group: 'HOSE',
+        icb_code: 2700,
+        get icbCode() {
+          return this.icb_code;
+        },
+      });
+
+      expect(result).toEqual(cachedResponse);
+      expect(cacheService.get).toHaveBeenCalledWith(
+        'trading:sector-signals:HOSE:2700',
+        CacheType.TRADING,
+      );
+      expect(http.vciPost).not.toHaveBeenCalled();
+      expect(http.vciGraphql).not.toHaveBeenCalled();
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
 
     it('should roll up child sectors when direct level-1 data is missing', async () => {
@@ -816,6 +908,99 @@ describe('TradingService', () => {
         group: 'HOSE',
       });
 
+      expect(cacheService.get).toHaveBeenCalledWith(
+        'trading:sector-signals:all-levels:HOSE',
+        CacheType.TRADING,
+      );
+      expect(cacheService.set).toHaveBeenCalledWith(
+        'trading:sector-signals:all-levels:HOSE',
+        {
+          message: 'Thành công',
+          data: {
+            group: 'HOSE',
+            asOfDate: '2025-04-07',
+            total: 3,
+            items: [
+              {
+                icbCode: 1000,
+                icbName: 'Nguyên vật liệu',
+                enIcbName: 'Basic Materials',
+                icbLevel: 1,
+                icbCodeParent: null,
+                input: {
+                  D: 1.5,
+                  W: 2,
+                  M: 5,
+                  VD: 300,
+                  VW: 500,
+                  VM: 1000,
+                  MDW: 3,
+                  MDM: 1.8,
+                  MWM: 2,
+                  tradingDaysInWeek: 5,
+                  tradingDaysInMonth: 6,
+                },
+                result: {
+                  label: 'Dẫn sóng',
+                  matchedLabels: ['Dẫn sóng', 'Hút tiền'],
+                  isExactMatch: true,
+                },
+              },
+              {
+                icbCode: 1300,
+                icbName: 'Hóa chất',
+                enIcbName: 'Chemicals',
+                icbLevel: 2,
+                icbCodeParent: 1000,
+                input: {
+                  D: 1,
+                  W: 2,
+                  M: 8,
+                  VD: 200,
+                  VW: 300,
+                  VM: 600,
+                  MDW: 3.3333333333333335,
+                  MDM: 2,
+                  MWM: 2,
+                  tradingDaysInWeek: 5,
+                  tradingDaysInMonth: 6,
+                },
+                result: {
+                  label: 'Dẫn sóng',
+                  matchedLabels: ['Dẫn sóng', 'Hút tiền'],
+                  isExactMatch: true,
+                },
+              },
+              {
+                icbCode: 1700,
+                icbName: 'Tài nguyên Cơ bản',
+                enIcbName: 'Basic Resources',
+                icbLevel: 2,
+                icbCodeParent: 1000,
+                input: {
+                  D: 2,
+                  W: 2,
+                  M: 4,
+                  VD: 100,
+                  VW: 200,
+                  VM: 400,
+                  MDW: 2.5,
+                  MDM: 1.5,
+                  MWM: 2,
+                  tradingDaysInWeek: 5,
+                  tradingDaysInMonth: 6,
+                },
+                result: {
+                  label: 'Hút tiền',
+                  matchedLabels: ['Hút tiền'],
+                  isExactMatch: true,
+                },
+              },
+            ],
+          },
+        },
+        CacheType.TRADING,
+      );
       expect(result).toEqual({
         message: 'Thành công',
         data: {
@@ -901,6 +1086,41 @@ describe('TradingService', () => {
           ],
         },
       });
+    });
+
+    it('should return cached all-level sector signals on cache hit', async () => {
+      const cachedResponse = {
+        message: 'Thành công',
+        data: {
+          group: 'HOSE',
+          asOfDate: '2025-04-07',
+          total: 1,
+          items: [
+            {
+              icbCode: 1000,
+              result: {
+                label: 'Hút tiền',
+                matchedLabels: [],
+                isExactMatch: false,
+              },
+            },
+          ],
+        },
+      };
+      cacheService.get.mockResolvedValue(cachedResponse);
+
+      const result = await service.getAllSectorSignals({
+        group: 'HOSE',
+      });
+
+      expect(result).toEqual(cachedResponse);
+      expect(cacheService.get).toHaveBeenCalledWith(
+        'trading:sector-signals:all-levels:HOSE',
+        CacheType.TRADING,
+      );
+      expect(http.vciPost).not.toHaveBeenCalled();
+      expect(http.vciGraphql).not.toHaveBeenCalled();
+      expect(cacheService.set).not.toHaveBeenCalled();
     });
   });
 });

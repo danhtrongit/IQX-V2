@@ -91,6 +91,16 @@ describe('RedisCacheService', () => {
       );
     });
 
+    it('should set cache with correct TTL for TRADING type', async () => {
+      await service.set('test-key', { data: 'test' }, CacheType.TRADING);
+
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        'test-key',
+        { data: 'test' },
+        60 * 60 * 1000,
+      );
+    });
+
     it('should set cache with correct TTL for SEARCH type', async () => {
       await service.set('test-key', { data: 'test' }, CacheType.SEARCH);
 

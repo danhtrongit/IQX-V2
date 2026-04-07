@@ -4,6 +4,10 @@ import { ProxyHttpService } from '../../common/services/proxy-http.service';
 import { DATA_SOURCES } from '../../common/constants/data-sources.constant';
 import { KBS_EXCHANGE_MAP } from '../../common/constants/mappings.constant';
 import { MESSAGES } from '../../common/constants/messages.constant';
+import {
+  RedisCacheService,
+  CacheType,
+} from '../../common/modules/redis-cache/redis-cache.service';
 import { MarketDataGateway } from './market-data.gateway';
 import {
   GetAllocatedIcbDetailDto,
@@ -202,6 +206,7 @@ export class TradingService {
   constructor(
     private http: ProxyHttpService,
     private marketGateway: MarketDataGateway,
+    private cacheService: RedisCacheService,
   ) {}
 
   /** Bảng giá realtime */
@@ -242,10 +247,21 @@ export class TradingService {
   async getSectorSignals(payload: GetSectorSignalDto): Promise<any> {
     const group = payload.group.toUpperCase();
     const icbCode = payload.icbCode;
+    const cacheKey = this.getSectorSignalCacheKey(group, icbCode);
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.TRADING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for sector signal: ${group}:${icbCode}`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const snapshot = await this.getSectorSignalSnapshot(group);
     const item = this.buildSectorSignalItem(icbCode, snapshot);
-
-    return {
+    const response = {
       message: MESSAGES.COMMON.SUCCESS,
       data: {
         group,
@@ -254,18 +270,37 @@ export class TradingService {
         item,
       },
     };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.TRADING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
   }
 
   async getAllSectorSignals(payload: GetAllSectorSignalsDto): Promise<any> {
     const group = payload.group.toUpperCase();
+    const cacheKey = this.getAllSectorSignalsCacheKey(group);
+
+    try {
+      const cached = await this.cacheService.get<any>(cacheKey, CacheType.TRADING);
+      if (cached) {
+        this.logger.debug(`Cache HIT for all sector signals: ${group}`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed: ${error.message}`);
+    }
+
     const snapshot = await this.getSectorSignalSnapshot(group);
     const codes = this.getAllSectorSignalCodes(snapshot);
     const items = codes
       .map((icbCode) => this.buildSectorSignalItem(icbCode, snapshot))
       .filter((item): item is SectorSignalItem => item !== null)
       .sort((left, right) => this.compareSectorSignalItems(left, right));
-
-    return {
+    const response = {
       message: MESSAGES.COMMON.SUCCESS,
       data: {
         group,
@@ -274,6 +309,14 @@ export class TradingService {
         items,
       },
     };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.TRADING);
+    } catch (error) {
+      this.logger.warn(`Cache set failed: ${error.message}`);
+    }
+
+    return response;
   }
 
   // ---------- KBS ----------
@@ -823,6 +866,14 @@ export class TradingService {
     if (levelDiff !== 0) return levelDiff;
 
     return left.icbCode - right.icbCode;
+  }
+
+  private getSectorSignalCacheKey(group: string, icbCode: number) {
+    return `trading:sector-signals:${group}:${icbCode}`;
+  }
+
+  private getAllSectorSignalsCacheKey(group: string) {
+    return `trading:sector-signals:all-levels:${group}`;
   }
 
   private async getIcbCodeMetadata(): Promise<IcbCodeMetadata[]> {

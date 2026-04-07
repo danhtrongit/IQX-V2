@@ -11,6 +11,7 @@ export enum CacheType {
   FINANCIAL = 'financial',
   LISTING = 'listing',
   COMPANY = 'company',
+  TRADING = 'trading',
 }
 
 @Injectable()
@@ -26,6 +27,7 @@ export class RedisCacheService {
     [CacheType.FINANCIAL]: 15 * 60 * 1000,
     [CacheType.LISTING]: 60 * 60 * 1000,
     [CacheType.COMPANY]: 60 * 60 * 1000,
+    [CacheType.TRADING]: 60 * 60 * 1000,
   };
 
   constructor(

@@ -1,5 +1,10 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { TradingService } from './trading.service';
 import { Public } from '../../common/decorators/public.decorator';
 import {
@@ -61,12 +66,48 @@ export class TradingController {
     return this.tradingService.getSectorSignals(payload);
   }
 
+  @Get('sector-signals')
+  @ApiOperation({
+    summary: 'Phân loại trạng thái ngành theo D/W/M và thanh khoản',
+  })
+  @ApiQuery({
+    name: 'group',
+    required: true,
+    example: 'HOSE',
+    description: 'Nhóm thị trường cần phân loại dòng tiền/ngành',
+  })
+  @ApiQuery({
+    name: 'icb_code',
+    required: true,
+    example: 2700,
+    description: 'Mã ngành ICB cần phân loại',
+  })
+  getSectorSignalsGet(@Query() payload: GetSectorSignalDto): Promise<any> {
+    return this.tradingService.getSectorSignals(payload);
+  }
+
   @Post('sector-signals/all-levels')
   @ApiOperation({
     summary: 'Lấy toàn bộ trạng thái ngành ở mọi level theo D/W/M và thanh khoản',
   })
   @ApiBody({ type: GetAllSectorSignalsDto })
   getAllSectorSignals(@Body() payload: GetAllSectorSignalsDto): Promise<any> {
+    return this.tradingService.getAllSectorSignals(payload);
+  }
+
+  @Get('sector-signals/all-levels')
+  @ApiOperation({
+    summary: 'Lấy toàn bộ trạng thái ngành ở mọi level theo D/W/M và thanh khoản',
+  })
+  @ApiQuery({
+    name: 'group',
+    required: true,
+    example: 'HOSE',
+    description: 'Nhóm thị trường cần phân loại dòng tiền/ngành',
+  })
+  getAllSectorSignalsGet(
+    @Query() payload: GetAllSectorSignalsDto,
+  ): Promise<any> {
     return this.tradingService.getAllSectorSignals(payload);
   }
 
