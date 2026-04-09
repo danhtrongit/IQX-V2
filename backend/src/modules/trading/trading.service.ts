@@ -70,9 +70,17 @@ interface SectorSignalInputMetrics {
   MWM: number | null;
 }
 
+type SectorSignalLabel =
+  | 'Dẫn sóng'
+  | 'Hút tiền'
+  | 'Tích lũy'
+  | 'Phân phối'
+  | 'Hồi kỹ thuật'
+  | 'Suy yếu';
+
 interface SectorSignalEvaluation {
-  label: string;
-  matchedLabels: string[];
+  label: SectorSignalLabel | null;
+  matchedLabels: SectorSignalLabel[];
   isExactMatch: boolean;
 }
 
@@ -80,6 +88,7 @@ interface TradingSessionStats {
   latestTradingDate: string | null;
   tradingDaysInWeek: number;
   tradingDaysInMonth: number;
+  benchmark: BenchmarkChangeMetrics;
 }
 
 interface SectorSignalItem {
@@ -109,7 +118,56 @@ interface SectorSignalSnapshot {
   monthResolvedCache: Map<number, AllocatedIcbRawItem | null>;
 }
 
+interface BenchmarkChangeMetrics {
+  symbol: string;
+  D: number | null;
+  W: number | null;
+  M: number | null;
+}
+
+interface SectorInsightSummary {
+  status: string;
+  performance: {
+    text: string;
+    changePercent: number | null;
+    benchmarkChangePercent: number | null;
+    relativePercent: number | null;
+  };
+  moneyFlow: {
+    text: string;
+    ratio: number | null;
+  };
+  breadth: {
+    text: string;
+    advancing: number;
+    declining: number;
+    unchanged: number;
+    total: number;
+  };
+  leaders: {
+    text: string;
+    symbols: string[];
+    concentrationRatio: number | null;
+  };
+  weakness: string;
+  opportunity: string;
+  risk: string;
+}
+
+interface SectorOverviewGroup {
+  label: string;
+  rule: string;
+  limit: number | null;
+  totalCandidates: number;
+  industries: Array<
+    SectorSignalItem & {
+      insight: SectorInsightSummary;
+    }
+  >;
+}
+
 const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
+const SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL = 3;
 
 const SECTOR_SIGNAL_RULES = [
   {
@@ -129,12 +187,12 @@ const SECTOR_SIGNAL_RULES = [
   },
   {
     label: 'Hút tiền',
-    condition: 'M > -6 & W > -2 & (MDM >= 1.4 or MWM >= 1.2)',
+    condition: 'M > -4 & W > 0 & (MDM >= 1.4 or MWM >= 1.2)',
     matches: (input: SectorSignalInputMetrics) =>
       input.M !== null &&
-      input.M > -6 &&
+      input.M > -4 &&
       input.W !== null &&
-      input.W > -2 &&
+      input.W > 0 &&
       ((input.MDM !== null && input.MDM >= 1.4) ||
         (input.MWM !== null && input.MWM >= 1.2)),
   },
@@ -196,6 +254,45 @@ const SECTOR_SIGNAL_RULES = [
       input.MWM !== null &&
       input.MWM < 1.1,
   },
+] as const;
+
+const SECTOR_OVERVIEW_CONFIG: Record<
+  SectorSignalLabel,
+  { limit: number | null; rule: string }
+> = {
+  'Dẫn sóng': {
+    limit: 1,
+    rule: 'M > 4% & W >= 2 & D >= 0 & MDM >= 1.2 & MWM >= 1.1',
+  },
+  'Hút tiền': {
+    limit: 2,
+    rule: 'M > -4 & W > 0 & (MDM >= 1.4 or MWM >= 1.2)',
+  },
+  'Tích lũy': {
+    limit: 3,
+    rule: '-2 <= W <= 2 & -5 <= M <= 5 & -1.5 <= D <= 1.5 & 0.9 <= MDM <= 1.2 & 0.9 <= MWM <= 1.1',
+  },
+  'Phân phối': {
+    limit: null,
+    rule: 'M >= 6 & W <= -2 & D <= 0 & (MDM >= 1.2 or MWM >= 1.1)',
+  },
+  'Hồi kỹ thuật': {
+    limit: null,
+    rule: 'M <= -8 & M <= -8 & D > 0 & MDW >= 1.0',
+  },
+  'Suy yếu': {
+    limit: null,
+    rule: 'M <= -6 & W <= -3 & MDM < 1.2 & MWM < 1.1',
+  },
+};
+
+const SECTOR_OVERVIEW_ORDER = [
+  'Dẫn sóng',
+  'Hút tiền',
+  'Tích lũy',
+  'Phân phối',
+  'Hồi kỹ thuật',
+  'Suy yếu',
 ] as const;
 
 @Injectable()
@@ -295,18 +392,22 @@ export class TradingService {
     }
 
     const snapshot = await this.getSectorSignalSnapshot(group);
-    const codes = this.getAllSectorSignalCodes(snapshot);
+    const codes = this.getAllSectorSignalCodes(
+      snapshot,
+      SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL,
+    );
     const items = codes
       .map((icbCode) => this.buildSectorSignalItem(icbCode, snapshot))
       .filter((item): item is SectorSignalItem => item !== null)
       .sort((left, right) => this.compareSectorSignalItems(left, right));
+    const selectedItems = this.selectAllLevelSectorSignalItems(items);
     const response = {
       message: MESSAGES.COMMON.SUCCESS,
       data: {
         group,
         asOfDate: snapshot.sessionStats.latestTradingDate,
-        total: items.length,
-        items,
+        total: selectedItems.length,
+        items: selectedItems,
       },
     };
 
@@ -526,7 +627,7 @@ export class TradingService {
           },
         ),
         this.getIcbCodeMetadata(),
-        this.getTradingSessionStats(),
+        this.getTradingSessionStats(group),
       ]);
 
     const metadataMap = new Map(
@@ -552,16 +653,30 @@ export class TradingService {
     };
   }
 
-  private getAllSectorSignalCodes(snapshot: SectorSignalSnapshot) {
+  private getAllSectorSignalCodes(
+    snapshot: SectorSignalSnapshot,
+    maxLevel: number | null = null,
+  ) {
     const codes = new Set<number>();
+    const isAllowedLevel = (code: number) => {
+      const level = snapshot.metadataMap.get(code)?.level ?? null;
+      return maxLevel === null || level === null || level <= maxLevel;
+    };
 
     for (const item of snapshot.metadataList) {
+      if (!isAllowedLevel(item.icbCode)) continue;
       codes.add(item.icbCode);
     }
 
-    for (const code of snapshot.dayMap.keys()) codes.add(code);
-    for (const code of snapshot.weekMap.keys()) codes.add(code);
-    for (const code of snapshot.monthMap.keys()) codes.add(code);
+    for (const code of snapshot.dayMap.keys()) {
+      if (isAllowedLevel(code)) codes.add(code);
+    }
+    for (const code of snapshot.weekMap.keys()) {
+      if (isAllowedLevel(code)) codes.add(code);
+    }
+    for (const code of snapshot.monthMap.keys()) {
+      if (isAllowedLevel(code)) codes.add(code);
+    }
 
     return Array.from(codes.values());
   }
@@ -619,6 +734,45 @@ export class TradingService {
       },
       result: this.evaluateSectorSignal(metrics),
     };
+  }
+
+  private async buildSectorOverview(
+    items: SectorSignalItem[],
+    snapshot: SectorSignalSnapshot,
+  ): Promise<SectorOverviewGroup[]> {
+    const detailCache = new Map<number, AllocatedIcbDetailRawStock[]>();
+
+    return Promise.all(
+      SECTOR_OVERVIEW_ORDER.map(async (label) => {
+        const config = SECTOR_OVERVIEW_CONFIG[label];
+        const candidates = items
+          .filter((item) => item.result.label === label)
+          .sort((left, right) => this.compareSectorOverviewCandidates(left, right));
+        const selectedCandidates =
+          config.limit === null
+            ? candidates
+            : candidates.slice(0, Math.max(config.limit, 0));
+
+        const industries = await Promise.all(
+          selectedCandidates.map(async (item) => ({
+            ...item,
+            insight: await this.buildSectorInsightSummary(
+              item,
+              snapshot,
+              detailCache,
+            ),
+          })),
+        );
+
+        return {
+          label,
+          rule: config.rule,
+          limit: config.limit,
+          totalCandidates: candidates.length,
+          industries,
+        };
+      }),
+    );
   }
 
   private buildIcbChildCodeMap(
@@ -788,72 +942,10 @@ export class TradingService {
     ).map((rule) => rule.label);
 
     return {
-      label: matchedLabels[0] || this.getClosestSectorSignalLabel(input),
+      label: matchedLabels[0] || null,
       matchedLabels,
       isExactMatch: matchedLabels.length > 0,
     };
-  }
-
-  private getClosestSectorSignalLabel(input: SectorSignalInputMetrics) {
-    const penalties = [
-      {
-        label: 'Dẫn sóng',
-        penalty:
-          this.minPenalty(input.M, 4, true) +
-          this.minPenalty(input.W, 2) +
-          this.minPenalty(input.D, 0) +
-          this.minPenalty(input.MDM, 1.2) +
-          this.minPenalty(input.MWM, 1.1),
-      },
-      {
-        label: 'Hút tiền',
-        penalty:
-          this.minPenalty(input.M, -6, true) +
-          this.minPenalty(input.W, -2, true) +
-          Math.min(
-            this.minPenalty(input.MDM, 1.4),
-            this.minPenalty(input.MWM, 1.2),
-          ),
-      },
-      {
-        label: 'Tích lũy',
-        penalty:
-          this.rangePenalty(input.W, -2, 2) +
-          this.rangePenalty(input.M, -5, 5) +
-          this.rangePenalty(input.D, -1.5, 1.5) +
-          this.rangePenalty(input.MDM, 0.9, 1.2) +
-          this.rangePenalty(input.MWM, 0.9, 1.1),
-      },
-      {
-        label: 'Phân phối',
-        penalty:
-          this.minPenalty(input.M, 6) +
-          this.maxPenalty(input.W, -2) +
-          this.maxPenalty(input.D, 0) +
-          Math.min(
-            this.minPenalty(input.MDM, 1.2),
-            this.minPenalty(input.MWM, 1.1),
-          ),
-      },
-      {
-        label: 'Hồi kỹ thuật',
-        penalty:
-          this.maxPenalty(input.M, -8) +
-          this.minPenalty(input.D, 0, true) +
-          this.minPenalty(input.MDW, 1.0),
-      },
-      {
-        label: 'Suy yếu',
-        penalty:
-          this.maxPenalty(input.M, -6) +
-          this.maxPenalty(input.W, -3) +
-          this.maxPenalty(input.MDM, 1.2, true) +
-          this.maxPenalty(input.MWM, 1.1, true),
-      },
-    ];
-
-    penalties.sort((a, b) => a.penalty - b.penalty);
-    return penalties[0]?.label || 'Tích lũy';
   }
 
   private compareSectorSignalItems(
@@ -868,12 +960,361 @@ export class TradingService {
     return left.icbCode - right.icbCode;
   }
 
+  private compareSectorOverviewCandidates(
+    left: SectorSignalItem,
+    right: SectorSignalItem,
+  ) {
+    const mdwDiff = this.compareNullableNumbersDesc(
+      left.input.MDW,
+      right.input.MDW,
+    );
+    if (mdwDiff !== 0) return mdwDiff;
+
+    if (left.result.isExactMatch !== right.result.isExactMatch) {
+      return left.result.isExactMatch ? -1 : 1;
+    }
+
+    return this.compareSectorSignalItems(left, right);
+  }
+
+  private selectAllLevelSectorSignalItems(items: SectorSignalItem[]) {
+    return SECTOR_OVERVIEW_ORDER.flatMap((label) => {
+      const { limit } = SECTOR_OVERVIEW_CONFIG[label];
+      const candidates = items
+        .filter(
+          (item) => item.result.isExactMatch && item.result.label === label,
+        )
+        .sort((left, right) =>
+          this.compareSectorOverviewCandidates(left, right),
+        );
+
+      if (limit === null) return candidates;
+
+      return candidates.slice(0, Math.max(limit, 0));
+    });
+  }
+
+  private async buildSectorInsightSummary(
+    item: SectorSignalItem,
+    snapshot: SectorSignalSnapshot,
+    detailCache: Map<number, AllocatedIcbDetailRawStock[]>,
+  ): Promise<SectorInsightSummary> {
+    const breadth = this.buildBreadthSummary(item.icbCode, snapshot);
+    const detailStocks = await this.resolveAllocatedIcbDetailStocks(
+      snapshot.group,
+      item.icbCode,
+      snapshot.childCodeMap,
+      detailCache,
+    );
+    const leaders = this.buildLeadersSummary(item, detailStocks);
+
+    return {
+      status: item.result.label ?? 'Không xác định',
+      performance: this.buildPerformanceSummary(item, snapshot.sessionStats),
+      moneyFlow: this.buildMoneyFlowSummary(item),
+      breadth,
+      leaders,
+      weakness: this.buildWeaknessSummary(item, breadth, leaders),
+      opportunity: this.buildOpportunitySummary(item, breadth),
+      risk: this.buildRiskSummary(item, breadth),
+    };
+  }
+
+  private buildPerformanceSummary(
+    item: SectorSignalItem,
+    sessionStats: TradingSessionStats,
+  ) {
+    const changePercent = item.input.W;
+    const benchmarkChangePercent = sessionStats.benchmark.W;
+    const relativePercent =
+      changePercent !== null && benchmarkChangePercent !== null
+        ? changePercent - benchmarkChangePercent
+        : null;
+
+    return {
+      text:
+        changePercent === null
+          ? 'Chưa đủ dữ liệu hiệu suất để đánh giá'
+          : `${this.formatSignedPercent(changePercent)} trong ${
+              sessionStats.tradingDaysInWeek
+            } phiên${
+              relativePercent === null
+                ? ''
+                : `, ${relativePercent >= 0 ? 'vượt' : 'kém'} ${
+                    sessionStats.benchmark.symbol
+                  } ${this.formatSignedPercent(Math.abs(relativePercent))}`
+            }`,
+      changePercent,
+      benchmarkChangePercent,
+      relativePercent,
+    };
+  }
+
+  private buildMoneyFlowSummary(item: SectorSignalItem) {
+    const dailyRatio = item.input.MDM;
+    const weeklyRatio = item.input.MWM;
+    const referenceDays = item.input.tradingDaysInMonth;
+
+    if (dailyRatio === null && weeklyRatio === null) {
+      return {
+        text: 'Chưa đủ dữ liệu dòng tiền để so sánh với bình quân',
+        ratio: null,
+      };
+    }
+
+    if (dailyRatio !== null && dailyRatio >= 1) {
+      return {
+        text:
+          dailyRatio >= 1
+            ? `GTGD cao hơn bình quân ${referenceDays} phiên ${this.formatRatio(
+                dailyRatio,
+              )} lần`
+            : `GTGD chỉ bằng ${this.formatRatio(dailyRatio)} lần bình quân ${referenceDays} phiên`,
+        ratio: dailyRatio,
+      };
+    }
+
+    if (weeklyRatio !== null) {
+      return {
+        text:
+          weeklyRatio >= 1
+            ? `GTGD tuần cao hơn nền thanh khoản 1 tháng ${this.formatRatio(
+                weeklyRatio,
+              )} lần`
+            : `GTGD tuần chỉ bằng ${this.formatRatio(
+                weeklyRatio,
+              )} lần nền thanh khoản 1 tháng`,
+        ratio: weeklyRatio,
+      };
+    }
+
+    return {
+      text: `GTGD chỉ bằng ${this.formatRatio(
+        dailyRatio as number,
+      )} lần bình quân ${referenceDays} phiên`,
+      ratio: dailyRatio,
+    };
+  }
+
+  private buildBreadthSummary(
+    icbCode: number,
+    snapshot: SectorSignalSnapshot,
+  ) {
+    const dayItem = this.resolveAllocatedIcbItem(
+      icbCode,
+      snapshot.dayMap,
+      snapshot.metadataMap,
+      snapshot.childCodeMap,
+      snapshot.dayResolvedCache,
+    );
+    const weekItem = this.resolveAllocatedIcbItem(
+      icbCode,
+      snapshot.weekMap,
+      snapshot.metadataMap,
+      snapshot.childCodeMap,
+      snapshot.weekResolvedCache,
+    );
+    const monthItem = this.resolveAllocatedIcbItem(
+      icbCode,
+      snapshot.monthMap,
+      snapshot.metadataMap,
+      snapshot.childCodeMap,
+      snapshot.monthResolvedCache,
+    );
+    const sourceItem = dayItem || weekItem || monthItem;
+    const advancing = this.toInteger(this.toNumber(sourceItem?.totalStockIncrease));
+    const declining = this.toInteger(this.toNumber(sourceItem?.totalStockDecrease));
+    const unchanged = this.toInteger(this.toNumber(sourceItem?.totalStockNoChange));
+    const total = advancing + declining + unchanged;
+
+    return {
+      text:
+        total > 0
+          ? `${advancing}/${total} mã tăng`
+          : 'Chưa có dữ liệu độ rộng ngành',
+      advancing,
+      declining,
+      unchanged,
+      total,
+    };
+  }
+
+  private buildLeadersSummary(
+    item: SectorSignalItem,
+    detailStocks: AllocatedIcbDetailRawStock[],
+  ) {
+    const sortedStocks = [...detailStocks].sort((left, right) => {
+      return (
+        this.toNumber(right.accumulatedValue) ?? 0
+      ) - (this.toNumber(left.accumulatedValue) ?? 0);
+    });
+    const topStocks = sortedStocks.slice(0, 3);
+    const totalTopValue = this.sumNumbers(
+      topStocks.map((stock) => this.toNumber(stock.accumulatedValue)),
+    );
+    const totalSectorValue = item.input.VD;
+    const concentrationRatio =
+      totalTopValue !== null && totalSectorValue !== null && totalSectorValue > 0
+        ? totalTopValue / totalSectorValue
+        : null;
+
+    return {
+      text:
+        topStocks.length > 0
+          ? topStocks.map((stock) => stock.symbol).join(', ')
+          : 'Chưa xác định được mã dẫn dắt',
+      symbols: topStocks.map((stock) => stock.symbol),
+      concentrationRatio,
+    };
+  }
+
+  private buildWeaknessSummary(
+    item: SectorSignalItem,
+    breadth: SectorInsightSummary['breadth'],
+    leaders: SectorInsightSummary['leaders'],
+  ) {
+    const breadthRatio =
+      breadth.total > 0 ? breadth.advancing / breadth.total : null;
+
+    switch (item.result.label) {
+      case 'Dẫn sóng':
+        if (leaders.concentrationRatio !== null && leaders.concentrationRatio >= 0.55) {
+          return 'đà tăng còn phụ thuộc nhiều vào 3 mã đầu ngành';
+        }
+        if (breadthRatio !== null && breadthRatio < 0.6) {
+          return 'độ rộng tăng chưa thực sự lan tỏa đồng đều trong toàn ngành';
+        }
+        return 'dòng tiền dẫn dắt mới tập trung ở một phần nhóm cổ phiếu mạnh';
+      case 'Hút tiền':
+        if ((item.input.W ?? 0) <= 1) {
+          return 'giá chưa bứt tốc rõ dù dòng tiền đã cải thiện';
+        }
+        return 'dòng tiền vẫn thiên về các mã thanh khoản lớn hơn là lan rộng toàn ngành';
+      case 'Tích lũy':
+        return 'xung lực giá còn trung tính và thiếu cổ phiếu dẫn dắt rõ ràng';
+      case 'Phân phối':
+        return 'áp lực chốt lời đang lấn át sau nhịp tăng trước đó';
+      case 'Hồi kỹ thuật':
+        return 'đây mới là nhịp hồi ngắn hạn sau giai đoạn giảm sâu';
+      case 'Suy yếu':
+        return 'xu hướng giá và dòng tiền đều chưa cho tín hiệu cải thiện rõ';
+      default:
+        return 'động lực của ngành vẫn cần thêm tín hiệu xác nhận';
+    }
+  }
+
+  private buildOpportunitySummary(
+    item: SectorSignalItem,
+    breadth: SectorInsightSummary['breadth'],
+  ) {
+    const breadthRatio =
+      breadth.total > 0 ? breadth.advancing / breadth.total : null;
+
+    switch (item.result.label) {
+      case 'Dẫn sóng':
+        return breadthRatio !== null && breadthRatio < 0.65
+          ? 'nếu dòng tiền lan sang nhóm chưa tăng nhiều, ngành còn dư địa mở rộng đà tăng'
+          : 'nếu thanh khoản duy trì và nhóm vốn hóa trung bình nhập cuộc, xu hướng còn có thể nối dài';
+      case 'Hút tiền':
+        return 'nếu hiệu suất tuần cải thiện thêm, ngành có thể chuyển sang trạng thái dẫn sóng';
+      case 'Tích lũy':
+        return 'nếu xuất hiện dòng tiền chủ động ở các mã dẫn dắt, ngành có thể sớm thoát nền tích lũy';
+      case 'Phân phối':
+        return 'nếu áp lực bán hạ nhiệt và thanh khoản ổn định lại, ngành có thể quay về vùng cân bằng';
+      case 'Hồi kỹ thuật':
+        return 'nếu lực cầu duy trì thêm vài phiên, ngành có thể cải thiện sang trạng thái tích lũy';
+      case 'Suy yếu':
+        return 'nếu xuất hiện lực cầu bắt đáy và breadth cải thiện, ngành có thể chuyển sang hồi kỹ thuật';
+      default:
+        return 'nếu các chỉ báo thanh khoản cải thiện, trạng thái ngành có thể tích cực hơn';
+    }
+  }
+
+  private buildRiskSummary(
+    item: SectorSignalItem,
+    breadth: SectorInsightSummary['breadth'],
+  ) {
+    const breadthRatio =
+      breadth.total > 0 ? breadth.advancing / breadth.total : null;
+
+    switch (item.result.label) {
+      case 'Dẫn sóng':
+        return breadthRatio !== null && breadthRatio < 0.5
+          ? 'nếu breadth tiếp tục thu hẹp, trạng thái dẫn sóng sẽ suy yếu nhanh'
+          : 'nếu breadth thu hẹp hoặc thanh khoản giảm nhanh, trạng thái dẫn sóng sẽ suy yếu';
+      case 'Hút tiền':
+        return 'nếu dòng tiền không duy trì trên mức bình quân, trạng thái hút tiền dễ quay lại tích lũy';
+      case 'Tích lũy':
+        return 'nếu thị trường chung suy yếu, vùng tích lũy hiện tại có thể bị phá vỡ';
+      case 'Phân phối':
+        return 'nếu lực bán tiếp tục dồn vào các mã dẫn dắt, trạng thái phân phối sẽ kéo dài';
+      case 'Hồi kỹ thuật':
+        return 'nếu lực cầu suy yếu, nhịp hồi kỹ thuật hiện tại dễ thất bại';
+      case 'Suy yếu':
+        return 'nếu tiếp tục mất hỗ trợ cùng thanh khoản cạn, đà suy yếu sẽ kéo dài';
+      default:
+        return 'nếu thanh khoản giảm và lực cầu yếu đi, trạng thái ngành sẽ xấu hơn';
+    }
+  }
+
+  private async resolveAllocatedIcbDetailStocks(
+    group: string,
+    icbCode: number,
+    childCodeMap: Map<number, number[]>,
+    cache: Map<number, AllocatedIcbDetailRawStock[]>,
+    visiting = new Set<number>(),
+  ): Promise<AllocatedIcbDetailRawStock[]> {
+    if (cache.has(icbCode)) {
+      return cache.get(icbCode) || [];
+    }
+    if (visiting.has(icbCode)) return [];
+
+    visiting.add(icbCode);
+
+    let stocks: AllocatedIcbDetailRawStock[] = [];
+
+    try {
+      const data = await this.http.vciPost<AllocatedIcbDetailRawItem | null>(
+        '/market-watch/AllocatedICB/getAllocatedDetail',
+        {
+          group,
+          timeFrame: 'ONE_DAY',
+          icbCode,
+        },
+      );
+      stocks = data?.icbDataDetail || [];
+    } catch (error) {
+      stocks = [];
+    }
+
+    if (stocks.length === 0) {
+      for (const childCode of childCodeMap.get(icbCode) || []) {
+        const childStocks = await this.resolveAllocatedIcbDetailStocks(
+          group,
+          childCode,
+          childCodeMap,
+          cache,
+          visiting,
+        );
+        stocks.push(...childStocks);
+      }
+    }
+
+    visiting.delete(icbCode);
+
+    const uniqueStocks = Array.from(
+      new Map(stocks.map((stock) => [stock.symbol, stock])).values(),
+    );
+    cache.set(icbCode, uniqueStocks);
+    return uniqueStocks;
+  }
+
   private getSectorSignalCacheKey(group: string, icbCode: number) {
-    return `trading:sector-signals:${group}:${icbCode}`;
+    return `trading:sector-signals:v2:${group}:${icbCode}`;
   }
 
   private getAllSectorSignalsCacheKey(group: string) {
-    return `trading:sector-signals:all-levels:${group}`;
+    return `trading:sector-signals:all-levels:v3:${group}`;
   }
 
   private async getIcbCodeMetadata(): Promise<IcbCodeMetadata[]> {
@@ -897,21 +1338,33 @@ export class TradingService {
     }));
   }
 
-  private async getTradingSessionStats(): Promise<TradingSessionStats> {
+  private async getTradingSessionStats(
+    group: string,
+  ): Promise<TradingSessionStats> {
+    const benchmarkSymbol = this.getBenchmarkSymbolForGroup(group);
     const to = Math.floor(Date.now() / 1000);
     const raw = await this.http.vciPost<any[]>('/chart/OHLCChart/gap-chart', {
       timeFrame: 'ONE_DAY',
-      symbols: ['VNINDEX'],
+      symbols: [benchmarkSymbol],
       to,
       countBack: 40,
     });
 
     const timestamps: number[] = raw?.[0]?.t || [];
+    const closes = (raw?.[0]?.c || []).map((value: number | string | null) =>
+      this.toNumber(value),
+    );
     if (timestamps.length === 0) {
       return {
         latestTradingDate: null,
         tradingDaysInWeek: 0,
         tradingDaysInMonth: 0,
+        benchmark: {
+          symbol: benchmarkSymbol,
+          D: null,
+          W: null,
+          M: null,
+        },
       };
     }
 
@@ -939,6 +1392,12 @@ export class TradingService {
       latestTradingDate: this.getDateKey(latestDateParts),
       tradingDaysInWeek,
       tradingDaysInMonth,
+      benchmark: {
+        symbol: benchmarkSymbol,
+        D: this.calculatePeriodChange(closes, 2),
+        W: this.calculatePeriodChange(closes, tradingDaysInWeek),
+        M: this.calculatePeriodChange(closes, tradingDaysInMonth),
+      },
     };
   }
 
@@ -1023,37 +1482,60 @@ export class TradingService {
     return new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
   }
 
-  private minPenalty(
-    value: number | null,
-    min: number,
-    strict = false,
-  ): number {
-    if (value === null) return Number.MAX_SAFE_INTEGER;
-    if (strict) return value > min ? 0 : min - value + 0.000001;
-    return Math.max(0, min - value);
-  }
-
-  private maxPenalty(
-    value: number | null,
-    max: number,
-    strict = false,
-  ): number {
-    if (value === null) return Number.MAX_SAFE_INTEGER;
-    if (strict) return value < max ? 0 : value - max + 0.000001;
-    return Math.max(0, value - max);
-  }
-
-  private rangePenalty(value: number | null, min: number, max: number): number {
-    if (value === null) return Number.MAX_SAFE_INTEGER;
-    if (value < min) return min - value;
-    if (value > max) return value - max;
-    return 0;
-  }
-
   private sumNumbers(values: Array<number | null>) {
     const numbers = values.filter((value): value is number => value !== null);
     if (numbers.length === 0) return null;
     return numbers.reduce((total, value) => total + value, 0);
+  }
+
+  private calculatePeriodChange(
+    values: Array<number | null>,
+    sessions: number,
+  ): number | null {
+    const numbers = values.filter((value): value is number => value !== null);
+    if (numbers.length < 2 || sessions <= 1) return null;
+
+    const startIndex = Math.max(0, numbers.length - sessions);
+    const start = numbers[startIndex];
+    const end = numbers[numbers.length - 1];
+
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start === 0) {
+      return null;
+    }
+
+    return ((end - start) / start) * 100;
+  }
+
+  private getBenchmarkSymbolForGroup(group: string) {
+    const normalizedGroup = group.toUpperCase();
+
+    if (normalizedGroup === 'HNX') return 'HNX';
+    if (normalizedGroup === 'UPCOM') return 'UPCOM';
+
+    return 'VNINDEX';
+  }
+
+  private formatSignedPercent(value: number) {
+    return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+  }
+
+  private formatRatio(value: number) {
+    return value.toFixed(1);
+  }
+
+  private toInteger(value: number | null) {
+    if (value === null || !Number.isFinite(value)) return 0;
+    return Math.round(value);
+  }
+
+  private compareNullableNumbersDesc(
+    left: number | null,
+    right: number | null,
+  ) {
+    if (left === null && right === null) return 0;
+    if (left === null) return 1;
+    if (right === null) return -1;
+    return right - left;
   }
 
   private toNumber(value: number | string | null | undefined) {
