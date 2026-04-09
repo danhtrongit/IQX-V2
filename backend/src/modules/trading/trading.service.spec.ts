@@ -413,6 +413,102 @@ describe('TradingService', () => {
       });
     });
 
+    it('should require W <= -8 for Hồi kỹ thuật label', async () => {
+      const buildSectorSignal = async (weeklyChangePercent: number) => {
+        http.vciPost.mockImplementation(async (path: string, body: any) => {
+          if (
+            path === '/market-watch/AllocatedICB/getAllocated' &&
+            body.timeFrame === 'ONE_DAY'
+          ) {
+            return [
+              {
+                icb_code: 2700,
+                icbChangePercent: 1,
+                totalValue: 200,
+                icbCodeParent: 2000,
+              },
+            ];
+          }
+
+          if (
+            path === '/market-watch/AllocatedICB/getAllocated' &&
+            body.timeFrame === 'ONE_WEEK'
+          ) {
+            return [
+              {
+                icb_code: 2700,
+                icbChangePercent: weeklyChangePercent,
+                totalValue: 800,
+                icbCodeParent: 2000,
+              },
+            ];
+          }
+
+          if (
+            path === '/market-watch/AllocatedICB/getAllocated' &&
+            body.timeFrame === 'ONE_MONTH'
+          ) {
+            return [
+              {
+                icb_code: 2700,
+                icbChangePercent: -9,
+                totalValue: 1000,
+                icbCodeParent: 2000,
+              },
+            ];
+          }
+
+          if (path === '/chart/OHLCChart/gap-chart') {
+            return [
+              {
+                t: [
+                  1743382800, 1743469200, 1743555600, 1743642000, 1743728400,
+                  1743987600,
+                ],
+              },
+            ];
+          }
+
+          throw new Error(`Unexpected vciPost call: ${path}`);
+        });
+
+        http.vciGraphql.mockResolvedValue({
+          data: {
+            ListIcbCode: [
+              {
+                icbCode: '2700',
+                level: 2,
+                icbName: 'Hàng & Dịch vụ Công nghiệp',
+                enIcbName: 'Industrial Goods & Services',
+              },
+            ],
+          },
+        });
+
+        return service.getSectorSignals({
+          group: 'HOSE',
+          icb_code: 2700,
+          get icbCode() {
+            return this.icb_code;
+          },
+        });
+      };
+
+      const noMatchResult = await buildSectorSignal(-7.5);
+      expect(noMatchResult.data.item.result).toEqual({
+        label: null,
+        matchedLabels: [],
+        isExactMatch: false,
+      });
+
+      const matchedResult = await buildSectorSignal(-8);
+      expect(matchedResult.data.item.result).toEqual({
+        label: 'Hồi kỹ thuật',
+        matchedLabels: ['Hồi kỹ thuật'],
+        isExactMatch: true,
+      });
+    });
+
     it('should return cached sector signal response on cache hit', async () => {
       const cachedResponse = {
         message: 'Thành công',
@@ -1125,7 +1221,197 @@ describe('TradingService', () => {
       expect(result.data).not.toHaveProperty('overview');
     });
 
-    it('should keep only level 1-3 items', async () => {
+    it('should return full exact-match list when applyTopLimit is false', async () => {
+      http.vciPost.mockImplementation(async (path: string, body: any) => {
+        if (
+          path === '/market-watch/AllocatedICB/getAllocated' &&
+          body.timeFrame === 'ONE_DAY'
+        ) {
+          return [
+            { icb_code: 1300, icbChangePercent: 1, totalValue: 600, icbCodeParent: 1000 },
+            { icb_code: 1700, icbChangePercent: 1, totalValue: 400, icbCodeParent: 1000 },
+            { icb_code: 2300, icbChangePercent: 1, totalValue: 300, icbCodeParent: 2000 },
+          ];
+        }
+
+        if (
+          path === '/market-watch/AllocatedICB/getAllocated' &&
+          body.timeFrame === 'ONE_WEEK'
+        ) {
+          return [
+            { icb_code: 1300, icbChangePercent: 3, totalValue: 600, icbCodeParent: 1000 },
+            { icb_code: 1700, icbChangePercent: 3, totalValue: 500, icbCodeParent: 1000 },
+            { icb_code: 2300, icbChangePercent: 3, totalValue: 450, icbCodeParent: 2000 },
+          ];
+        }
+
+        if (
+          path === '/market-watch/AllocatedICB/getAllocated' &&
+          body.timeFrame === 'ONE_MONTH'
+        ) {
+          return [
+            { icb_code: 1300, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 1000 },
+            { icb_code: 1700, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 1000 },
+            { icb_code: 2300, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 2000 },
+          ];
+        }
+
+        if (path === '/chart/OHLCChart/gap-chart') {
+          return [
+            {
+              t: [
+                1743382800, 1743469200, 1743555600, 1743642000, 1743728400,
+                1743987600,
+              ],
+              c: [99, 100, 100.5, 101, 101.5, 102],
+            },
+          ];
+        }
+
+        throw new Error(`Unexpected vciPost call: ${path}`);
+      });
+
+      http.vciGraphql.mockResolvedValue({
+        data: {
+          ListIcbCode: [
+            { icbCode: '1300', level: 2, icbName: 'Hóa chất', enIcbName: 'Chemicals' },
+            { icbCode: '1700', level: 2, icbName: 'Tài nguyên Cơ bản', enIcbName: 'Basic Resources' },
+            { icbCode: '2300', level: 2, icbName: 'Dịch vụ tài chính', enIcbName: 'Financial Services' },
+          ],
+        },
+      });
+
+      const result = await service.getAllSectorSignals({
+        group: 'HOSE',
+        applyTopLimit: false,
+      });
+
+      expect(cacheService.get).toHaveBeenCalledWith(
+        'trading:sector-signals:all-levels:v4:HOSE:no-top',
+        CacheType.TRADING,
+      );
+      expect(result.data.applyTopLimit).toBe(false);
+      expect(result.data.total).toBe(3);
+      expect(result.data.items.map((item: any) => item.icbCode)).toEqual([
+        1300, 1700, 2300,
+      ]);
+      expect(result.data.items.every((item: any) => item.result.label === 'Dẫn sóng')).toBe(
+        true,
+      );
+    });
+
+    it('should return debug inputs for all sectors level 1-2 from icb-codes.json metadata', async () => {
+      http.vciPost.mockImplementation(async (path: string, body: any) => {
+        if (
+          path === '/market-watch/AllocatedICB/getAllocated' &&
+          body.timeFrame === 'ONE_DAY'
+        ) {
+          return [
+            { icb_code: 1300, icbChangePercent: 1, totalValue: 300, icbCodeParent: 1000 },
+          ];
+        }
+
+        if (
+          path === '/market-watch/AllocatedICB/getAllocated' &&
+          body.timeFrame === 'ONE_WEEK'
+        ) {
+          return [
+            { icb_code: 1300, icbChangePercent: 3, totalValue: 400, icbCodeParent: 1000 },
+          ];
+        }
+
+        if (
+          path === '/market-watch/AllocatedICB/getAllocated' &&
+          body.timeFrame === 'ONE_MONTH'
+        ) {
+          return [
+            { icb_code: 1300, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 1000 },
+          ];
+        }
+
+        if (path === '/chart/OHLCChart/gap-chart') {
+          return [
+            {
+              t: [
+                1743382800, 1743469200, 1743555600, 1743642000, 1743728400,
+                1743987600,
+              ],
+              c: [99, 100, 100.5, 101, 101.5, 102],
+            },
+          ];
+        }
+
+        throw new Error(`Unexpected vciPost call: ${path}`);
+      });
+
+      http.vciGraphql.mockResolvedValue({
+        data: {
+          ListIcbCode: [
+            { icbCode: '1300', level: 2, icbName: 'Hóa chất', enIcbName: 'Chemicals' },
+          ],
+        },
+      });
+
+      jest
+        .spyOn(service as any, 'getIcbCodeMetadataFromIcbJson')
+        .mockResolvedValue([
+          { icbCode: 1000, level: 1, icbName: 'Nguyên vật liệu', enIcbName: 'Basic Materials' },
+          { icbCode: 1300, level: 2, icbName: 'Hóa chất', enIcbName: 'Chemicals' },
+          { icbCode: 1700, level: 2, icbName: 'Tài nguyên Cơ bản', enIcbName: 'Basic Resources' },
+          { icbCode: 1730, level: 3, icbName: 'Lâm nghiệp và Giấy', enIcbName: 'Forestry & Paper' },
+        ]);
+
+      const result = await service.getAllSectorSignals({
+        group: 'HOSE',
+        applyTopLimit: false,
+        debug: true,
+      });
+
+      expect(cacheService.get).not.toHaveBeenCalled();
+      expect(cacheService.set).not.toHaveBeenCalled();
+      expect(result.data.debug).toBe(true);
+      expect(result.data.debugInputs).toEqual(
+        expect.objectContaining({
+          source: 'icb-codes.json',
+          maxLevel: 2,
+          total: 3,
+          levelCounts: {
+            '1': 1,
+            '2': 2,
+          },
+        }),
+      );
+
+      const noDataItem = result.data.debugInputs.items.find(
+        (item: any) => item.icbCode === 1700,
+      );
+      expect(noDataItem).toMatchObject({
+        icbCode: 1700,
+        icbLevel: 2,
+        hasAllocatedData: false,
+        result: {
+          label: null,
+          matchedLabels: [],
+          isExactMatch: false,
+        },
+      });
+      expect(noDataItem.input.D).toBeNull();
+      expect(
+        result.data.debugInputs.items.find((item: any) => item.icbCode === 1730),
+      ).toBeUndefined();
+
+      const hasDataItem = result.data.debugInputs.items.find(
+        (item: any) => item.icbCode === 1300,
+      );
+      expect(hasDataItem).toMatchObject({
+        icbCode: 1300,
+        icbLevel: 2,
+        hasAllocatedData: true,
+      });
+      expect(hasDataItem.input.MDW).toBeCloseTo(3.75);
+    });
+
+    it('should keep only level 1-2 items', async () => {
       http.vciPost.mockImplementation(async (path: string, body: any) => {
         if (
           path === '/market-watch/AllocatedICB/getAllocated' &&

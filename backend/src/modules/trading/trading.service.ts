@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { existsSync, promises as fsPromises } from 'node:fs';
+import * as path from 'node:path';
 import { ProxyHttpService } from '../../common/services/proxy-http.service';
 import { DATA_SOURCES } from '../../common/constants/data-sources.constant';
 import { KBS_EXCHANGE_MAP } from '../../common/constants/mappings.constant';
@@ -56,6 +58,13 @@ interface IcbCodeMetadata {
   level: number | null;
   icbName: string | null;
   enIcbName: string | null;
+}
+
+interface IcbCodeJsonItem {
+  name?: string | number | null;
+  viSector?: string | null;
+  enSector?: string | null;
+  icbLevel?: number | string | null;
 }
 
 interface SectorSignalInputMetrics {
@@ -167,7 +176,7 @@ interface SectorOverviewGroup {
 }
 
 const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
-const SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL = 3;
+const SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL = 2;
 
 const SECTOR_SIGNAL_RULES = [
   {
@@ -232,10 +241,12 @@ const SECTOR_SIGNAL_RULES = [
   },
   {
     label: 'Hồi kỹ thuật',
-    condition: 'M <= -8 & M <= -8 & D > 0 & MDW >= 1.0',
+    condition: 'M <= -8 & W <= -8 & D > 0 & MDW >= 1.0',
     matches: (input: SectorSignalInputMetrics) =>
       input.M !== null &&
       input.M <= -8 &&
+      input.W !== null &&
+      input.W <= -8 &&
       input.D !== null &&
       input.D > 0 &&
       input.MDW !== null &&
@@ -278,7 +289,7 @@ const SECTOR_OVERVIEW_CONFIG: Record<
   },
   'Hồi kỹ thuật': {
     limit: null,
-    rule: 'M <= -8 & M <= -8 & D > 0 & MDW >= 1.0',
+    rule: 'M <= -8 & W <= -8 & D > 0 & MDW >= 1.0',
   },
   'Suy yếu': {
     limit: null,
@@ -299,6 +310,7 @@ const SECTOR_OVERVIEW_ORDER = [
 export class TradingService {
   private readonly logger = new Logger(TradingService.name);
   private cachedIndices: any[] = [];
+  private icbCodesJsonMetadataCache: IcbCodeMetadata[] | null = null;
 
   constructor(
     private http: ProxyHttpService,
@@ -379,16 +391,20 @@ export class TradingService {
 
   async getAllSectorSignals(payload: GetAllSectorSignalsDto): Promise<any> {
     const group = payload.group.toUpperCase();
-    const cacheKey = this.getAllSectorSignalsCacheKey(group);
+    const applyTopLimit = payload.applyTopLimit ?? true;
+    const debug = payload.debug ?? false;
+    const cacheKey = this.getAllSectorSignalsCacheKey(group, applyTopLimit);
 
-    try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.TRADING);
-      if (cached) {
-        this.logger.debug(`Cache HIT for all sector signals: ${group}`);
-        return cached;
+    if (!debug) {
+      try {
+        const cached = await this.cacheService.get<any>(cacheKey, CacheType.TRADING);
+        if (cached) {
+          this.logger.debug(`Cache HIT for all sector signals: ${group}`);
+          return cached;
+        }
+      } catch (error) {
+        this.logger.warn(`Cache get failed: ${error.message}`);
       }
-    } catch (error) {
-      this.logger.warn(`Cache get failed: ${error.message}`);
     }
 
     const snapshot = await this.getSectorSignalSnapshot(group);
@@ -400,21 +416,35 @@ export class TradingService {
       .map((icbCode) => this.buildSectorSignalItem(icbCode, snapshot))
       .filter((item): item is SectorSignalItem => item !== null)
       .sort((left, right) => this.compareSectorSignalItems(left, right));
-    const selectedItems = this.selectAllLevelSectorSignalItems(items);
+    const selectedItems = this.selectAllLevelSectorSignalItems(
+      items,
+      applyTopLimit,
+    );
     const response = {
       message: MESSAGES.COMMON.SUCCESS,
       data: {
         group,
         asOfDate: snapshot.sessionStats.latestTradingDate,
+        applyTopLimit,
+        debug,
         total: selectedItems.length,
         items: selectedItems,
+        ...(debug
+          ? {
+              debugInputs: await this.buildAllSectorDebugInputsFromIcbJson(
+                snapshot,
+              ),
+            }
+          : {}),
       },
     };
 
-    try {
-      await this.cacheService.set(cacheKey, response, CacheType.TRADING);
-    } catch (error) {
-      this.logger.warn(`Cache set failed: ${error.message}`);
+    if (!debug) {
+      try {
+        await this.cacheService.set(cacheKey, response, CacheType.TRADING);
+      } catch (error) {
+        this.logger.warn(`Cache set failed: ${error.message}`);
+      }
     }
 
     return response;
@@ -977,7 +1007,10 @@ export class TradingService {
     return this.compareSectorSignalItems(left, right);
   }
 
-  private selectAllLevelSectorSignalItems(items: SectorSignalItem[]) {
+  private selectAllLevelSectorSignalItems(
+    items: SectorSignalItem[],
+    applyTopLimit = true,
+  ) {
     return SECTOR_OVERVIEW_ORDER.flatMap((label) => {
       const { limit } = SECTOR_OVERVIEW_CONFIG[label];
       const candidates = items
@@ -988,7 +1021,7 @@ export class TradingService {
           this.compareSectorOverviewCandidates(left, right),
         );
 
-      if (limit === null) return candidates;
+      if (!applyTopLimit || limit === null) return candidates;
 
       return candidates.slice(0, Math.max(limit, 0));
     });
@@ -1313,8 +1346,159 @@ export class TradingService {
     return `trading:sector-signals:v2:${group}:${icbCode}`;
   }
 
-  private getAllSectorSignalsCacheKey(group: string) {
+  private getAllSectorSignalsCacheKey(group: string, applyTopLimit = true) {
+    if (!applyTopLimit) {
+      return `trading:sector-signals:all-levels:v4:${group}:no-top`;
+    }
     return `trading:sector-signals:all-levels:v3:${group}`;
+  }
+
+  private async buildAllSectorDebugInputsFromIcbJson(
+    snapshot: SectorSignalSnapshot,
+  ) {
+    const metadataList = (await this.getIcbCodeMetadataFromIcbJson())
+      .filter(
+        (item) =>
+          item.level !== null && item.level <= SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL,
+      )
+      .sort((left, right) => left.icbCode - right.icbCode);
+    const metadataMap = new Map(
+      metadataList.map((item) => [item.icbCode, item] as const),
+    );
+    const childCodeMap = this.buildIcbChildCodeMap(metadataList, [
+      ...snapshot.dayMap.values(),
+      ...snapshot.weekMap.values(),
+      ...snapshot.monthMap.values(),
+    ]);
+    const debugSnapshot: SectorSignalSnapshot = {
+      ...snapshot,
+      metadataList,
+      metadataMap,
+      childCodeMap,
+      dayResolvedCache: new Map(),
+      weekResolvedCache: new Map(),
+      monthResolvedCache: new Map(),
+    };
+    const levelCounts = metadataList.reduce<Record<string, number>>(
+      (counts, item) => {
+        const key = String(item.level ?? 'unknown');
+        counts[key] = (counts[key] || 0) + 1;
+        return counts;
+      },
+      {},
+    );
+
+    return {
+      source: 'icb-codes.json',
+      maxLevel: SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL,
+      total: metadataList.length,
+      levelCounts,
+      items: metadataList.map((metadata) => {
+        const item = this.buildSectorSignalItem(metadata.icbCode, debugSnapshot);
+        if (item) {
+          return {
+            ...item,
+            hasAllocatedData: true,
+          };
+        }
+
+        return this.buildMissingSectorSignalItem(
+          metadata,
+          snapshot.sessionStats,
+        );
+      }),
+    };
+  }
+
+  private buildMissingSectorSignalItem(
+    metadata: IcbCodeMetadata,
+    sessionStats: TradingSessionStats,
+  ) {
+    return {
+      icbCode: metadata.icbCode,
+      icbName: metadata.icbName,
+      enIcbName: metadata.enIcbName,
+      icbLevel: metadata.level,
+      icbCodeParent: this.inferIcbParentCode(metadata.icbCode, metadata.level),
+      input: this.buildEmptySectorSignalMetrics(sessionStats),
+      result: {
+        label: null,
+        matchedLabels: [],
+        isExactMatch: false,
+      },
+      hasAllocatedData: false,
+    };
+  }
+
+  private buildEmptySectorSignalMetrics(sessionStats: TradingSessionStats) {
+    return {
+      D: null,
+      W: null,
+      M: null,
+      VD: null,
+      VW: null,
+      VM: null,
+      MDW: null,
+      MDM: null,
+      MWM: null,
+      tradingDaysInWeek: sessionStats.tradingDaysInWeek,
+      tradingDaysInMonth: sessionStats.tradingDaysInMonth,
+    };
+  }
+
+  private async getIcbCodeMetadataFromIcbJson(): Promise<IcbCodeMetadata[]> {
+    if (this.icbCodesJsonMetadataCache) {
+      return this.icbCodesJsonMetadataCache;
+    }
+
+    const filePath = this.resolveIcbCodesJsonPath();
+    if (!filePath) {
+      this.logger.warn('Không tìm thấy file icb-codes.json để build debug inputs');
+      return [];
+    }
+
+    try {
+      const raw = await fsPromises.readFile(filePath, 'utf8');
+      const parsed = JSON.parse(raw) as { data?: IcbCodeJsonItem[] };
+      const items = Array.isArray(parsed?.data)
+        ? parsed.data
+        : Array.isArray(parsed)
+          ? (parsed as IcbCodeJsonItem[])
+          : [];
+      const metadataMap = new Map<number, IcbCodeMetadata>();
+
+      for (const item of items) {
+        const icbCode = this.toNumber(item?.name ?? null);
+        const level = this.toNumber(item?.icbLevel ?? null);
+        if (icbCode === null || level === null) continue;
+        if (metadataMap.has(icbCode)) continue;
+
+        metadataMap.set(icbCode, {
+          icbCode,
+          level,
+          icbName: item?.viSector || null,
+          enIcbName: item?.enSector || null,
+        });
+      }
+
+      this.icbCodesJsonMetadataCache = Array.from(metadataMap.values()).sort(
+        (left, right) => left.icbCode - right.icbCode,
+      );
+      return this.icbCodesJsonMetadataCache;
+    } catch (error) {
+      this.logger.warn(`Đọc icb-codes.json thất bại: ${error.message}`);
+      return [];
+    }
+  }
+
+  private resolveIcbCodesJsonPath() {
+    const candidates = [
+      path.resolve(process.cwd(), 'icb-codes.json'),
+      path.resolve(process.cwd(), '../icb-codes.json'),
+      path.resolve(__dirname, '../../../../icb-codes.json'),
+    ];
+
+    return candidates.find((candidate) => existsSync(candidate)) || null;
   }
 
   private async getIcbCodeMetadata(): Promise<IcbCodeMetadata[]> {
