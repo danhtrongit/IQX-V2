@@ -27,7 +27,7 @@ export class AiInsightService {
   ) {
     this.baseUrl = this.config.get<string>('AI_BASE_URL', '');
     this.apiKey = this.config.get<string>('AI_API_KEY', '');
-    this.model = this.config.get<string>('AI_MODEL', 'gpt-5.2');
+    this.model = this.config.get<string>('AI_MODEL', 'gpt-5.4');
   }
 
   async analyze(symbol: string) {
@@ -122,13 +122,13 @@ export class AiInsightService {
     return response;
   }
 
-  // ── Chat Completion ──
+  // ── Responses API ──
 
   private async chatCompletion(
     systemPrompt: string,
     userMessage: string,
   ): Promise<string> {
-    const res = await fetch(this.baseUrl, {
+    const res = await fetch(this.resolveResponsesUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -136,13 +136,27 @@ export class AiInsightService {
       },
       body: JSON.stringify({
         model: this.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `QUAN TRỌNG: Chỉ trả về JSON hợp lệ, KHÔNG có text, KHÔNG có markdown. Bắt đầu bằng { và kết thúc bằng }\n\n${userMessage}` },
+        input: [
+          {
+            role: 'system',
+            content: [{ type: 'input_text', text: systemPrompt }],
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: `QUAN TRỌNG: Chỉ trả về JSON hợp lệ, KHÔNG có text, KHÔNG có markdown. Bắt đầu bằng { và kết thúc bằng }\n\n${userMessage}`,
+              },
+            ],
+          },
         ],
+        stream: true,
         temperature: 0.3,
-        max_tokens: 65536,
-        response_format: { type: 'json_object' },
+        max_output_tokens: 65536,
+        text: {
+          format: { type: 'json_object' },
+        },
       }),
     });
 
@@ -151,10 +165,114 @@ export class AiInsightService {
       throw new Error(`AI API error ${res.status}: ${errText.slice(0, 200)}`);
     }
 
-    const json = await res.json();
-    const content = json?.choices?.[0]?.message?.content;
-    if (!content) throw new Error('AI response empty');
-    return content.trim();
+    return this.readResponsesStream(res);
+  }
+
+  private resolveResponsesUrl(): string {
+    const trimmed = this.baseUrl.trim().replace(/\/+$/, '');
+
+    if (!trimmed) {
+      throw new Error('AI_BASE_URL chưa được cấu hình.');
+    }
+
+    if (trimmed.endsWith('/responses')) {
+      return trimmed;
+    }
+
+    if (trimmed.endsWith('/chat/completions')) {
+      return `${trimmed.slice(0, -'/chat/completions'.length)}/responses`;
+    }
+
+    return `${trimmed}/responses`;
+  }
+
+  private async readResponsesStream(res: Response): Promise<string> {
+    if (!res.body) {
+      throw new Error('AI response stream missing');
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let collectedText = '';
+    let finalText = '';
+    let rawPreview = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+      rawPreview = (rawPreview + chunk).slice(-4000);
+
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() ?? '';
+
+      for (const event of events) {
+        const parsed = this.parseSseEvent(event);
+        if (!parsed) continue;
+
+        if (parsed.type === 'response.output_text.delta') {
+          collectedText += parsed.delta || '';
+        }
+
+        if (parsed.type === 'response.output_text.done' && parsed.text) {
+          finalText = parsed.text;
+        }
+
+        if (parsed.type === 'error') {
+          const message = parsed.error?.message || JSON.stringify(parsed.error);
+          throw new Error(`AI stream error: ${message}`);
+        }
+      }
+    }
+
+    buffer += decoder.decode();
+    if (buffer.trim()) {
+      rawPreview = (rawPreview + buffer).slice(-4000);
+      const parsed = this.parseSseEvent(buffer);
+      if (parsed?.type === 'response.output_text.done' && parsed.text) {
+        finalText = parsed.text;
+      }
+    }
+
+    const text = (collectedText || finalText).trim();
+    if (text) {
+      return text;
+    }
+
+    throw new Error(`AI response empty: ${rawPreview.slice(-400)}`);
+  }
+
+  private parseSseEvent(rawEvent: string): any | null {
+    const lines = rawEvent
+      .split(/\r?\n/)
+      .map((line) => line.trimEnd())
+      .filter(Boolean);
+
+    if (!lines.length) {
+      return null;
+    }
+
+    const dataLines = lines
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice('data:'.length).trim());
+
+    if (!dataLines.length) {
+      return null;
+    }
+
+    const data = dataLines.join('\n');
+    if (data === '[DONE]') {
+      return null;
+    }
+
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
   }
 
   // ── Build Combined Input (all data for single request) ──
