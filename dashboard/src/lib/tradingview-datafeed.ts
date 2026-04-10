@@ -3,6 +3,12 @@
  * Connects to our backend /quote API to provide OHLCV data
  */
 
+import {
+  formatVietnamDateKey,
+  formatVietnamDateParam,
+  getVietnamDateStartTimestamp,
+} from "./tradingview-timezone"
+
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1"
 
 // ── News mark types (exported for popover) ──
@@ -123,8 +129,8 @@ async function fetchBars(
   try {
     let url = `${API_BASE}/quote/history/${symbol.toUpperCase()}?interval=${interval}`
 
-    if (from) url += `&from=${formatDateParam(new Date(from * 1000))}`
-    if (to) url += `&to=${formatDateParam(new Date(to * 1000))}`
+    if (from) url += `&from=${formatVietnamDateParam(new Date(from * 1000))}`
+    if (to) url += `&to=${formatVietnamDateParam(new Date(to * 1000))}`
 
     const resp = await fetch(url)
 
@@ -180,11 +186,11 @@ async function fetchNewsMarks(symbol: string, from: number, to: number): Promise
   if (newsMarkCache.has(cacheKey)) return newsMarkCache.get(cacheKey)!
 
   try {
-    const fromDate = new Date(from * 1000).toISOString().slice(0, 10)
+    const fromDate = formatVietnamDateKey(new Date(from * 1000))
     // Cap toDate to today — TradingView may pass far-future timestamps
     const rawTo = new Date(to * 1000)
     const now = new Date()
-    const toDate = (rawTo > now ? now : rawTo).toISOString().slice(0, 10)
+    const toDate = formatVietnamDateKey(rawTo > now ? now : rawTo)
 
     const resp = await fetch(
       `${API_BASE}/ai-news/news?ticker=${encodeURIComponent(symbol)}&updateFrom=${fromDate}&updateTo=${toDate}&pageSize=100&language=vi`
@@ -197,7 +203,11 @@ async function fetchNewsMarks(symbol: string, from: number, to: number): Promise
     // Group by date (YYYY-MM-DD)
     const grouped = new Map<string, NewsMarkItem[]>()
     for (const item of items) {
-      const dateStr = (item.updatedAt || "").slice(0, 10)
+      const updatedAt = item.updatedAt ? new Date(item.updatedAt) : null
+      const dateStr =
+        updatedAt && !Number.isNaN(updatedAt.getTime())
+          ? formatVietnamDateKey(updatedAt)
+          : (item.updatedAt || "").slice(0, 10)
       if (!dateStr) continue
       if (!grouped.has(dateStr)) grouped.set(dateStr, [])
       grouped.get(dateStr)!.push({
@@ -213,11 +223,9 @@ async function fetchNewsMarks(symbol: string, from: number, to: number): Promise
 
     const result: NewsMarkGroup[] = []
     for (const [dateKey, newsItems] of grouped) {
-      // Convert date to start-of-day UTC+7 timestamp
-      const d = new Date(dateKey + "T00:00:00+07:00")
       result.push({
         dateKey,
-        timestamp: Math.floor(d.getTime() / 1000),
+        timestamp: getVietnamDateStartTimestamp(dateKey),
         items: newsItems,
         dominantSentiment: getDominantSentiment(newsItems),
       })
@@ -243,13 +251,6 @@ export function getNewsMarkGroup(_symbol: string, markId: string): NewsMarkGroup
     if (found) return found
   }
   return null
-}
-
-function formatDateParam(d: Date): string {
-  const dd = String(d.getDate()).padStart(2, "0")
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const yyyy = d.getFullYear()
-  return `${dd}-${mm}-${yyyy}`
 }
 
 // DataPulse for real-time updates (polling)
