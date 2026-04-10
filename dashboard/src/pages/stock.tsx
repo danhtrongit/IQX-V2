@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import {
   Header,
   MarketBar,
@@ -11,15 +11,16 @@ import { NewsMarkPopover } from "@/components/chart/news-mark-popover"
 import { StockOverview } from "@/components/stock/stock-overview"
 import { StockFinancials } from "@/components/stock/stock-financials"
 import { StockAiInsight } from "@/components/stock/stock-ai-insight"
-import { useParams, useNavigate } from "react-router"
+import { useParams, useNavigate, Navigate } from "react-router"
 import { SymbolProvider } from "@/contexts/symbol-context"
 import { SidebarProvider } from "@/contexts/sidebar-context"
 import { MarketDataProvider } from "@/contexts/market-data-context"
-import { BarChart3, LineChart, Info, X, GripHorizontal } from "lucide-react"
+import { BarChart3, LineChart, Info, X, GripHorizontal, Loader2 } from "lucide-react"
 import { motion, AnimatePresence, useDragControls } from "framer-motion"
 import { Button } from "@/components/ui/button"
 
 import { useSEO } from "@/hooks/use-seo"
+import { isSupportedStockRouteSymbol } from "@/lib/stock-route"
 
 type StockTab = "chart" | "overview" | "financials"
 
@@ -27,6 +28,7 @@ export default function StockPage() {
   const { symbol } = useParams<{ symbol: string }>()
   const ticker = symbol?.toUpperCase() || "VNINDEX"
   const navigate = useNavigate()
+  const [routeStatus, setRouteStatus] = useState<"checking" | "ready" | "not-found">("checking")
 
   useSEO({
     title: `Cổ phiếu ${ticker} - Biểu đồ, Tài chính & Phân Tích AI | IQX`,
@@ -37,6 +39,21 @@ export default function StockPage() {
   const [isAiInsightOpen, setIsAiInsightOpen] = useState(false)
   const [activeMarkId, setActiveMarkId] = useState<string | number | null>(null)
   const dragControls = useDragControls()
+
+  useEffect(() => {
+    let isCancelled = false
+
+    setRouteStatus("checking")
+
+    isSupportedStockRouteSymbol(ticker).then((isSupported) => {
+      if (isCancelled) return
+      setRouteStatus(isSupported ? "ready" : "not-found")
+    })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [ticker])
 
   const handleTVSymbolChanged = useCallback(
     (newSymbol: string) => {
@@ -58,6 +75,21 @@ export default function StockPage() {
     if (id === "ai-insight") {
       setIsAiInsightOpen((prev) => !prev)
     }
+  }
+
+  if (routeStatus === "not-found") {
+    return <Navigate to="/404" replace />
+  }
+
+  if (routeStatus === "checking") {
+    return (
+      <div className="min-h-svh flex items-center justify-center bg-background">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="size-5 animate-spin" />
+          <span className="text-sm">Đang kiểm tra mã cổ phiếu...</span>
+        </div>
+      </div>
+    )
   }
 
   return (

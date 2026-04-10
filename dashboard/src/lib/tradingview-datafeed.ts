@@ -8,6 +8,7 @@ import {
   formatVietnamDateParam,
   getVietnamDateStartTimestamp,
 } from "./tradingview-timezone"
+import { INDEX_SYMBOLS } from "./market-symbols"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1"
 
@@ -77,12 +78,6 @@ const CONFIG: DataFeedConfig & { supports_marks: boolean } = {
     { name: "Chỉ số", value: "index" },
   ],
 }
-
-// Known index symbols
-const INDEX_SYMBOLS = new Set([
-  "VNINDEX", "VN30", "HNX", "HNX30", "UPCOM", "VN100",
-  "VNMID", "VNSMALL", "VNALL", "VN30F1M", "VN30F2M",
-])
 
 function getSymbolInfo(symbol: string) {
   const isIndex = INDEX_SYMBOLS.has(symbol.toUpperCase())
