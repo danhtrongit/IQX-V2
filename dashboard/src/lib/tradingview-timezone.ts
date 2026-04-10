@@ -1,4 +1,4 @@
-const VIETNAM_TIMEZONE = "Asia/Ho_Chi_Minh"
+export const VIETNAM_TIMEZONE = "Asia/Ho_Chi_Minh"
 
 const vietnamDateFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: VIETNAM_TIMEZONE,

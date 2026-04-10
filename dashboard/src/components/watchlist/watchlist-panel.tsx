@@ -21,6 +21,11 @@ import { api } from "@/lib/api"
 import { useNavigate } from "react-router"
 import { type PriceBoardData } from "@/hooks/use-market-data"
 import { usePrices } from "@/contexts/market-data-context"
+import {
+  normalizePortfolioItem,
+  type PortfolioApiItem,
+  type PortfolioItem,
+} from "./portfolio-utils"
 
 type WatchlistTab = "watchlist" | "holdings" | "history"
 
@@ -29,16 +34,6 @@ interface WatchlistItem {
   name: string
   symbols: string[]
   createdAt: string
-}
-
-interface PortfolioItem {
-  symbol: string
-  quantity: number
-  avgPrice: number
-  currentPrice: number
-  totalValue: number
-  pnl: number
-  pnlPercent: number
 }
 
 interface OrderItem {
@@ -361,10 +356,10 @@ function HoldingsTabContent() {
       setLoading(true)
       try {
         const [portfolioRes, accountRes] = await Promise.all([
-          api.get("arena/portfolio").json<{ data: PortfolioItem[] }>(),
+          api.get("arena/portfolio").json<{ data: PortfolioApiItem[] }>(),
           api.get("arena/account").json<{ data: any }>(),
         ])
-        setItems(portfolioRes.data || [])
+        setItems((portfolioRes.data || []).map(normalizePortfolioItem))
         setAccount(accountRes.data)
       } catch {
         setItems([])
