@@ -181,10 +181,10 @@ const SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL = 2;
 const SECTOR_SIGNAL_RULES = [
   {
     label: 'Dẫn sóng',
-    condition: 'M > 4% & W >= 2 & D >= 0 & MDM >= 1.2 & MWM >= 1.1',
+    condition: 'M > 2% & W >= 2 & D >= 0 & MDM >= 1.2 & MWM >= 1.1',
     matches: (input: SectorSignalInputMetrics) =>
       input.M !== null &&
-      input.M > 4 &&
+      input.M > 2 &&
       input.W !== null &&
       input.W >= 2 &&
       input.D !== null &&
@@ -196,10 +196,8 @@ const SECTOR_SIGNAL_RULES = [
   },
   {
     label: 'Hút tiền',
-    condition: 'M > -4 & W > 0 & (MDM >= 1.4 or MWM >= 1.2)',
+    condition: 'W > 0 & (MDM >= 1.4 or MWM >= 1.2)',
     matches: (input: SectorSignalInputMetrics) =>
-      input.M !== null &&
-      input.M > -4 &&
       input.W !== null &&
       input.W > 0 &&
       ((input.MDM !== null && input.MDM >= 1.4) ||
@@ -241,12 +239,12 @@ const SECTOR_SIGNAL_RULES = [
   },
   {
     label: 'Hồi kỹ thuật',
-    condition: 'M <= -8 & W <= -8 & D > 0 & MDW >= 1.0',
+    condition: 'M <= -8 & W > 1 & D > 0 & MDW >= 1.0',
     matches: (input: SectorSignalInputMetrics) =>
       input.M !== null &&
       input.M <= -8 &&
       input.W !== null &&
-      input.W <= -8 &&
+      input.W > 1 &&
       input.D !== null &&
       input.D > 0 &&
       input.MDW !== null &&
@@ -254,10 +252,8 @@ const SECTOR_SIGNAL_RULES = [
   },
   {
     label: 'Suy yếu',
-    condition: 'M <= -6 & W <= -3 & MDM < 1.2 & MWM < 1.1',
+    condition: 'W <= -3 & MDM < 1.2 & MWM < 1.1',
     matches: (input: SectorSignalInputMetrics) =>
-      input.M !== null &&
-      input.M <= -6 &&
       input.W !== null &&
       input.W <= -3 &&
       input.MDM !== null &&
@@ -273,11 +269,11 @@ const SECTOR_OVERVIEW_CONFIG: Record<
 > = {
   'Dẫn sóng': {
     limit: 1,
-    rule: 'M > 4% & W >= 2 & D >= 0 & MDM >= 1.2 & MWM >= 1.1',
+    rule: 'M > 2% & W >= 2 & D >= 0 & MDM >= 1.2 & MWM >= 1.1',
   },
   'Hút tiền': {
     limit: 2,
-    rule: 'M > -4 & W > 0 & (MDM >= 1.4 or MWM >= 1.2)',
+    rule: 'W > 0 & (MDM >= 1.4 or MWM >= 1.2)',
   },
   'Tích lũy': {
     limit: 3,
@@ -289,11 +285,11 @@ const SECTOR_OVERVIEW_CONFIG: Record<
   },
   'Hồi kỹ thuật': {
     limit: null,
-    rule: 'M <= -8 & W <= -8 & D > 0 & MDW >= 1.0',
+    rule: 'M <= -8 & W > 1 & D > 0 & MDW >= 1.0',
   },
   'Suy yếu': {
     limit: null,
-    rule: 'M <= -6 & W <= -3 & MDM < 1.2 & MWM < 1.1',
+    rule: 'W <= -3 & MDM < 1.2 & MWM < 1.1',
   },
 };
 

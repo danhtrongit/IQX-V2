@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/popover"
 import { useChat, type ChatMessage, type ChatRoom } from "@/contexts/chat-context"
 import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🚀", "💰", "📈", "📉", "🔥", "👀", "✅"]
 
@@ -775,10 +776,8 @@ export function ChatSidebarPanel() {
         content: string
         roomId: string
       }
-      import("sonner").then(({ toast }) => {
-        toast(`💬 ${detail.senderName}`, {
-          description: detail.content,
-        })
+      toast(`💬 ${detail.senderName}`, {
+        description: detail.content,
       })
     }
     window.addEventListener("chat:notification", handler)
