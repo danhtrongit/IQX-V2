@@ -99,8 +99,8 @@ Mức cảnh báo: bán nhiều → tăng thận trọng; mua đều → hỗ tr
 
 OUTPUT JSON (chỉ trả JSON):
 {
-  "insider": "xu hướng mua/bán + 1 câu",
-  "impactLevel": "trung tính/tăng thận trọng/hỗ trợ nhẹ"
+  "Nội bộ": "xu hướng mua/bán + 1 câu",
+  "Mức cảnh báo": "trung tính/tăng thận trọng/hỗ trợ nhẹ"
 }`,
 
   L5: `${SYSTEM_PROMPT}
