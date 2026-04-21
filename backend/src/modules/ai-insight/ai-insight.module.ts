@@ -9,10 +9,15 @@ import { TradingModule } from '../trading/trading.module';
 import { RedisCacheModule } from '../../common/modules/redis-cache';
 
 @Module({
-  imports: [AiNewsModule, CompanyModule, QuoteModule, TradingModule, RedisCacheModule],
+  imports: [
+    AiNewsModule,
+    CompanyModule,
+    QuoteModule,
+    TradingModule,
+    RedisCacheModule,
+  ],
   controllers: [AiInsightController],
   providers: [AiInsightService, InsightDataCollector],
   exports: [AiInsightService],
 })
 export class AiInsightModule {}
-

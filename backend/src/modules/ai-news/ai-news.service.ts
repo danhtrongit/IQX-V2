@@ -29,7 +29,10 @@ export class AiNewsService {
     const cacheKey = this.generateCacheKey('news', params);
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.AI_NEWS);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.AI_NEWS,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for news: ${cacheKey}`);
         return cached;
@@ -98,7 +101,10 @@ export class AiNewsService {
     const cacheKey = this.generateCacheKey('xnews', params);
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.AI_NEWS);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.AI_NEWS,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for exchange news: ${cacheKey}`);
         return cached;
@@ -149,7 +155,10 @@ export class AiNewsService {
     const cacheKey = `article:${slug}:${language}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.AI_NEWS);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.AI_NEWS,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for article: ${slug}`);
         return cached;
@@ -207,7 +216,10 @@ export class AiNewsService {
     const cacheKey = `ticker-score:${ticker.toUpperCase()}:${language}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.AI_NEWS);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.AI_NEWS,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for ticker score: ${ticker}`);
         return cached;
@@ -275,7 +287,10 @@ export class AiNewsService {
     const cacheKey = `industries:${language}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.STATIC);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.STATIC,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for industries`);
         return cached;
@@ -307,7 +322,10 @@ export class AiNewsService {
     const cacheKey = `sources:${language}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.STATIC);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.STATIC,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for sources`);
         return cached;
@@ -337,7 +355,10 @@ export class AiNewsService {
     return response;
   }
 
-  private generateCacheKey(prefix: string, params: Record<string, any>): string {
+  private generateCacheKey(
+    prefix: string,
+    params: Record<string, any>,
+  ): string {
     const sorted = Object.keys(params)
       .filter((k) => params[k] !== undefined && params[k] !== null)
       .sort()

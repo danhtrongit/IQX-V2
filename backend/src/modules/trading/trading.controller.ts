@@ -1,10 +1,5 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import {
-  ApiBody,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { TradingService } from './trading.service';
 import { Public } from '../../common/decorators/public.decorator';
 import {

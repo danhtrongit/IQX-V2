@@ -14,7 +14,6 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ChatService } from './chat.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
-import { SendMessageDto } from './dto/send-message.dto';
 import { AddMemberDto } from './dto/add-member.dto';
 import { SearchMessagesDto } from './dto/search-messages.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';

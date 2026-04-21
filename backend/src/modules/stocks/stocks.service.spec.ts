@@ -128,7 +128,7 @@ describe('StocksService', () => {
       prismaService.stock.findMany.mockResolvedValue([mockStocks[0]]);
       prismaService.stock.count.mockResolvedValue(1);
 
-      const result = await service.search('FPT');
+      await service.search('FPT');
 
       expect(prismaService.stock.findMany).toHaveBeenCalled();
       expect(prismaService.stock.count).toHaveBeenCalled();
@@ -249,7 +249,7 @@ describe('StocksService', () => {
       cacheService.get.mockResolvedValue(null);
       prismaService.stock.findUnique.mockResolvedValue(mockStocks[0]);
 
-      const result = await service.findBySymbol('FPT');
+      await service.findBySymbol('FPT');
 
       expect(prismaService.stock.findUnique).toHaveBeenCalledWith({
         where: { symbol: 'FPT' },
@@ -312,7 +312,7 @@ describe('StocksService', () => {
         { id: 1, code: 'TECH', name: 'Technology' },
       ]);
 
-      const result = await service.getStats();
+      await service.getStats();
 
       expect(prismaService.stock.count).toHaveBeenCalled();
       expect(prismaService.stock.groupBy).toHaveBeenCalledWith({

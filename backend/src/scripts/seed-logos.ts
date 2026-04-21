@@ -47,7 +47,10 @@ async function processBatch<T, R>(
     }
   }
 
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    () => worker(),
+  );
   await Promise.all(workers);
   return results;
 }
@@ -81,30 +84,36 @@ async function main() {
     // Batch update buffer
     const updateBuffer: { id: string; logoUrl: string }[] = [];
 
-    const results = await processBatch(needLogo, CONCURRENCY, async (stock) => {
-      const logoUrl = await checkLogoExists(stock.symbol);
-      processed++;
+    const _results = await processBatch(
+      needLogo,
+      CONCURRENCY,
+      async (stock) => {
+        const logoUrl = await checkLogoExists(stock.symbol);
+        processed++;
 
-      if (logoUrl) {
-        found++;
-        updateBuffer.push({ id: stock.id, logoUrl });
-      } else {
-        notFound++;
-      }
+        if (logoUrl) {
+          found++;
+          updateBuffer.push({ id: stock.id, logoUrl });
+        } else {
+          notFound++;
+        }
 
-      if (processed % 100 === 0 || processed === needLogo.length) {
-        const pct = ((processed / needLogo.length) * 100).toFixed(1);
-        console.log(
-          `  → ${processed}/${needLogo.length} (${pct}%) | ✅ ${found} | ❌ ${notFound}`,
-        );
-      }
+        if (processed % 100 === 0 || processed === needLogo.length) {
+          const pct = ((processed / needLogo.length) * 100).toFixed(1);
+          console.log(
+            `  → ${processed}/${needLogo.length} (${pct}%) | ✅ ${found} | ❌ ${notFound}`,
+          );
+        }
 
-      return logoUrl;
-    });
+        return logoUrl;
+      },
+    );
 
     // Batch update DB
     if (updateBuffer.length > 0) {
-      console.log(`\n💾 Đang lưu ${updateBuffer.length} logo vào DB (batch ${BATCH_SIZE})...`);
+      console.log(
+        `\n💾 Đang lưu ${updateBuffer.length} logo vào DB (batch ${BATCH_SIZE})...`,
+      );
 
       for (let i = 0; i < updateBuffer.length; i += BATCH_SIZE) {
         const batch = updateBuffer.slice(i, i + BATCH_SIZE);
@@ -130,7 +139,9 @@ async function main() {
 
     console.log('\n📊 === SUMMARY ===');
     console.log(`  Tổng mã CK: ${stocks.length}`);
-    console.log(`  Có logo: ${totalWithLogo} (${((totalWithLogo / stocks.length) * 100).toFixed(1)}%)`);
+    console.log(
+      `  Có logo: ${totalWithLogo} (${((totalWithLogo / stocks.length) * 100).toFixed(1)}%)`,
+    );
     console.log(`  Mới tìm thấy: ${found}`);
     console.log(`  Không có logo: ${notFound}`);
     console.log('\n✅ Seed logo hoàn tất!');

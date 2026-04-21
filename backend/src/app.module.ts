@@ -18,6 +18,8 @@ import { ArenaModule } from './modules/arena/arena.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { AiNewsModule } from './modules/ai-news/ai-news.module';
 import { AiInsightModule } from './modules/ai-insight/ai-insight.module';
+import { AiDashboardModule } from './modules/ai-dashboard/ai-dashboard.module';
+import { MarketDataModule } from './modules/market-data/market-data.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -57,6 +59,8 @@ import { RateLimiterModule } from './common/modules/rate-limiter/rate-limiter.mo
     ChatModule,
     AiNewsModule,
     AiInsightModule,
+    AiDashboardModule,
+    MarketDataModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

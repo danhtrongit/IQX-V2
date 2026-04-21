@@ -26,7 +26,10 @@ export class FinancialService {
     const cacheKey = `financial:report:${upper}:${type}:${termType}:${page}:${pageSize}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.FINANCIAL);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.FINANCIAL,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for financial report: ${cacheKey}`);
         return cached;
@@ -37,7 +40,7 @@ export class FinancialService {
 
     const data = await this.http.withFallback(
       () => this.getReportFromKbs(upper, type, termType, page, pageSize),
-      () => this.getReportFromVci(upper, termType === 2 ? 'Q' : 'Y'),
+      () => this.getReportFromVci(upper, type),
       'financial.getReport',
     );
 
@@ -57,7 +60,10 @@ export class FinancialService {
     const cacheKey = `financial:ratios:${upper}:${period}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.FINANCIAL);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.FINANCIAL,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for financial ratios: ${cacheKey}`);
         return cached;
@@ -103,7 +109,10 @@ query Query($ticker: String!, $period: String!) {
     const cacheKey = 'financial:field-mapping';
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.STATIC);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.STATIC,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for field mapping`);
         return cached;
@@ -156,13 +165,22 @@ query Query($ticker: String!, $period: String!) {
       params.termtype = termType;
     }
 
-    return this.http.kbsSasGet<any>(
+    return this.http.kbsGet<any>(
       `/stock/finance-info/${symbol.toUpperCase()}`,
       params,
     );
   }
 
-  private async getReportFromVci(symbol: string, period: string) {
-    return this.getRatios(symbol, period).then((r) => r.data);
+  private async getReportFromVci(symbol: string, section: string) {
+    const sectionMap: Record<string, string> = {
+      KQKD: 'INCOME_STATEMENT',
+      CDKT: 'BALANCE_SHEET',
+      LCTT: 'CASH_FLOW',
+      BCTT: 'NOTE',
+    };
+    const vciSection = sectionMap[section.toUpperCase()] || 'INCOME_STATEMENT';
+    return this.http.vciIqGet(`/company/${symbol}/financial-statement`, {
+      section: vciSection,
+    });
   }
 }

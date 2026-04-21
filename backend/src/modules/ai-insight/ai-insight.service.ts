@@ -21,8 +21,6 @@ type LayerRequestOptions = {
   maxOutputTokens?: number;
 };
 
-
-
 @Injectable()
 export class AiInsightService {
   private readonly logger = new Logger(AiInsightService.name);
@@ -45,7 +43,10 @@ export class AiInsightService {
     const cacheKey = `ai-insight:${upper}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.AI_INSIGHT);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.AI_INSIGHT,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for AI insight: ${upper}`);
         return cached;
@@ -80,7 +81,10 @@ export class AiInsightService {
       );
 
       allLayers = {
-        ...(Object.fromEntries(primaryLayerEntries) as Record<PrimaryLayerKey, any>),
+        ...(Object.fromEntries(primaryLayerEntries) as Record<
+          PrimaryLayerKey,
+          any
+        >),
         L6: {},
       };
 
@@ -103,7 +107,9 @@ export class AiInsightService {
         const failedLayers = ALL_LAYER_KEYS.filter((layerKey) =>
           this.isLayerError(allLayers[layerKey]),
         ).join(', ');
-        this.logger.warn(`AI analysis completed with layer errors for ${upper}: ${failedLayers}`);
+        this.logger.warn(
+          `AI analysis completed with layer errors for ${upper}: ${failedLayers}`,
+        );
       } else {
         this.logger.log(`AI response parsed successfully for ${upper}`);
       }
@@ -120,12 +126,21 @@ export class AiInsightService {
         symbol: upper,
         timestamp: new Date().toISOString(),
         layers: {
-          trend: { label: 'Xu hướng & Hỗ trợ/Kháng cự', output: allLayers.L1 || {} },
-          liquidity: { label: 'Thanh khoản & Cung–cầu', output: allLayers.L2 || {} },
+          trend: {
+            label: 'Xu hướng & Hỗ trợ/Kháng cự',
+            output: allLayers.L1 || {},
+          },
+          liquidity: {
+            label: 'Thanh khoản & Cung–cầu',
+            output: allLayers.L2 || {},
+          },
           moneyFlow: { label: 'Dòng tiền lớn', output: allLayers.L3 || {} },
           insider: { label: 'Sự kiện nội bộ', output: allLayers.L4 || {} },
           news: { label: 'Tin tức doanh nghiệp', output: allLayers.L5 || {} },
-          decision: { label: 'Tổng hợp & Hành động', output: allLayers.L6 || {} },
+          decision: {
+            label: 'Tổng hợp & Hành động',
+            output: allLayers.L6 || {},
+          },
         },
         rawInput,
         dataSummary: {
@@ -178,9 +193,7 @@ export class AiInsightService {
       );
       return { error: error.message };
     } finally {
-      this.logger.debug(
-        `${layerKey} finished in ${Date.now() - startedAt}ms`,
-      );
+      this.logger.debug(`${layerKey} finished in ${Date.now() - startedAt}ms`);
     }
   }
 
@@ -226,7 +239,9 @@ export class AiInsightService {
   }
 
   private isLayerError(layerOutput: any): boolean {
-    return !layerOutput || typeof layerOutput !== 'object' || !!layerOutput.error;
+    return (
+      !layerOutput || typeof layerOutput !== 'object' || !!layerOutput.error
+    );
   }
 
   // ── Responses API ──
@@ -400,7 +415,10 @@ export class AiInsightService {
     };
   }
 
-  private buildDecisionInput(symbol: string, layers: Record<string, any>): string {
+  private buildDecisionInput(
+    symbol: string,
+    layers: Record<string, any>,
+  ): string {
     const summarizedLayers = Object.fromEntries(
       PRIMARY_LAYER_KEYS.map((layerKey) => [
         layerKey,
@@ -453,33 +471,54 @@ export class AiInsightService {
     else if (score >= 1) action = 'Giữ';
     else if (score <= -2) action = 'Giảm tỷ trọng';
 
-    if (this.containsAny(trendText, ['giảm']) && this.containsAny(liquidityText, ['suy yếu'])) {
+    if (
+      this.containsAny(trendText, ['giảm']) &&
+      this.containsAny(liquidityText, ['suy yếu'])
+    ) {
       action = 'Giảm tỷ trọng';
     }
 
     const positiveFactors = [
       this.pickFactor('xu hướng', trendText, ['tăng']),
       this.pickFactor('thanh khoản', liquidityText, ['cải thiện']),
-      this.pickFactor('dòng tiền', `${foreignText} ${proprietaryText} ${moneyImpact}`, [
-        'mua ròng',
-        'ủng hộ',
+      this.pickFactor(
+        'dòng tiền',
+        `${foreignText} ${proprietaryText} ${moneyImpact}`,
+        ['mua ròng', 'ủng hộ'],
+      ),
+      this.pickFactor('nội bộ', `${insiderText} ${insiderAlert}`, [
+        'mua',
+        'hỗ trợ',
       ]),
-      this.pickFactor('nội bộ', `${insiderText} ${insiderAlert}`, ['mua', 'hỗ trợ']),
-      this.pickFactor('tin tức', `${newsOverview} ${newsImpact}`, ['tích cực', 'hỗ trợ']),
+      this.pickFactor('tin tức', `${newsOverview} ${newsImpact}`, [
+        'tích cực',
+        'hỗ trợ',
+      ]),
     ].filter(Boolean);
 
     const riskFactors = [
-      this.pickFactor('xu hướng', `${trendText} ${stateText}`, ['giảm', 'yếu', 'giằng co']),
+      this.pickFactor('xu hướng', `${trendText} ${stateText}`, [
+        'giảm',
+        'yếu',
+        'giằng co',
+      ]),
       this.pickFactor('thanh khoản', `${liquidityText} ${supplyDemandText}`, [
         'suy yếu',
         'kẹt lệnh',
       ]),
-      this.pickFactor('dòng tiền', `${foreignText} ${proprietaryText} ${moneyImpact}`, [
-        'bán ròng',
-        'cảnh báo',
+      this.pickFactor(
+        'dòng tiền',
+        `${foreignText} ${proprietaryText} ${moneyImpact}`,
+        ['bán ròng', 'cảnh báo'],
+      ),
+      this.pickFactor('nội bộ', `${insiderText} ${insiderAlert}`, [
+        'bán',
+        'thận trọng',
       ]),
-      this.pickFactor('nội bộ', `${insiderText} ${insiderAlert}`, ['bán', 'thận trọng']),
-      this.pickFactor('tin tức', `${newsOverview} ${newsImpact}`, ['tiêu cực', 'áp lực']),
+      this.pickFactor('tin tức', `${newsOverview} ${newsImpact}`, [
+        'tiêu cực',
+        'áp lực',
+      ]),
     ].filter(Boolean);
 
     const overview = positiveFactors.length
@@ -504,12 +543,16 @@ export class AiInsightService {
     return {
       'Tổng quan': `${overview} ${riskSentence}`.trim(),
       'Thanh khoản': liquidityText || 'Chưa đủ dữ liệu',
-      'Dòng tiền': [foreignText, proprietaryText, moneyImpact]
-        .filter(Boolean)
-        .join(' | ') || 'Chưa đủ dữ liệu',
+      'Dòng tiền':
+        [foreignText, proprietaryText, moneyImpact]
+          .filter(Boolean)
+          .join(' | ') || 'Chưa đủ dữ liệu',
       'Giao dịch nội bộ':
-        [insiderText, insiderAlert].filter(Boolean).join(' | ') || 'Chưa đủ dữ liệu',
-      'Tin tức': [newsOverview, newsImpact].filter(Boolean).join(' | ') || 'Chưa đủ dữ liệu',
+        [insiderText, insiderAlert].filter(Boolean).join(' | ') ||
+        'Chưa đủ dữ liệu',
+      'Tin tức':
+        [newsOverview, newsImpact].filter(Boolean).join(' | ') ||
+        'Chưa đủ dữ liệu',
       'Hành động chính': `${action} + ${this.buildActionReason(action, positiveFactors, riskFactors)}`,
       'Kịch bản thuận lợi': favorableCondition,
       'Kịch bản bất lợi': adverseCondition,
@@ -594,7 +637,8 @@ export class AiInsightService {
 
     const sd30 = d.supplyDemand.slice(0, 30);
     const latest = sd30[0];
-    const datLenh = (latest.buyTradeVolume || 0) + (latest.sellTradeVolume || 0);
+    const datLenh =
+      (latest.buyTradeVolume || 0) + (latest.sellTradeVolume || 0);
     const chuaKhop =
       (latest.buyUnmatchedVolume || 0) + (latest.sellUnmatchedVolume || 0);
     const khop = latest.totalVolume || 0;
@@ -633,7 +677,8 @@ export class AiInsightService {
   }
 
   private buildMoneyFlowSection(d: InsightRawData): string {
-    const { ma10, ma20, volMa10, volMa20, realtimeStr } = this.getTrendMetrics(d);
+    const { ma10, ma20, volMa10, volMa20, realtimeStr } =
+      this.getTrendMetrics(d);
 
     return [
       '## DỮ LIỆU CHO L3 (Dòng tiền)',
@@ -683,7 +728,9 @@ export class AiInsightService {
           `${i + 1}. ${n.title} (${n.sourceName || ''}, ${n.updatedAt?.split(' ')[0] || ''})`,
       )
       .join('\n');
-    parts.push(`Tin tức (${recentNews.length} tin gần nhất):\n${newsStr || 'Không có'}`);
+    parts.push(
+      `Tin tức (${recentNews.length} tin gần nhất):\n${newsStr || 'Không có'}`,
+    );
 
     return parts.join('\n');
   }
@@ -692,22 +739,18 @@ export class AiInsightService {
     const ohlcv30 = d.ohlcv.slice(-30);
     const last10 = d.ohlcv.slice(-10);
     const last20 = d.ohlcv.slice(-20);
-    const ma10 =
-      last10.length
-        ? last10.reduce((s, r) => s + r.close, 0) / last10.length
-        : 0;
-    const ma20 =
-      last20.length
-        ? last20.reduce((s, r) => s + r.close, 0) / last20.length
-        : 0;
-    const volMa10 =
-      last10.length
-        ? last10.reduce((s, r) => s + r.volume, 0) / last10.length
-        : 0;
-    const volMa20 =
-      last20.length
-        ? last20.reduce((s, r) => s + r.volume, 0) / last20.length
-        : 0;
+    const ma10 = last10.length
+      ? last10.reduce((s, r) => s + r.close, 0) / last10.length
+      : 0;
+    const ma20 = last20.length
+      ? last20.reduce((s, r) => s + r.close, 0) / last20.length
+      : 0;
+    const volMa10 = last10.length
+      ? last10.reduce((s, r) => s + r.volume, 0) / last10.length
+      : 0;
+    const volMa20 = last20.length
+      ? last20.reduce((s, r) => s + r.volume, 0) / last20.length
+      : 0;
     const latestClose = d.ohlcv.length ? d.ohlcv[d.ohlcv.length - 1].close : 0;
     const latestVolume = d.ohlcv.length
       ? d.ohlcv[d.ohlcv.length - 1].volume
@@ -717,7 +760,16 @@ export class AiInsightService {
       ? `Realtime (Bảng giá live): Giá hiện tại (P0)=${d.realtime.price}, Volume hiện tại (V0)=${d.realtime.volume}, Cao=${d.realtime.high}, Thấp=${d.realtime.low}, Tham chiếu=${d.realtime.ref}${d.realtime.change != null ? `, Thay đổi=${d.realtime.change} (${d.realtime.changePercent?.toFixed(2)}%)` : ''}`
       : `Realtime (Chốt phiên mới nhất): P0=${latestClose.toFixed(2)}, V0=${latestVolume}`;
 
-    return { ohlcv30, ma10, ma20, volMa10, volMa20, latestClose, latestVolume, realtimeStr };
+    return {
+      ohlcv30,
+      ma10,
+      ma20,
+      volMa10,
+      volMa20,
+      latestClose,
+      latestVolume,
+      realtimeStr,
+    };
   }
 
   private asText(value: unknown): string {
@@ -751,7 +803,8 @@ export class AiInsightService {
     if (this.containsAny(liquidityText, ['cải thiện'])) score += 1;
     if (this.containsAny(liquidityText, ['suy yếu'])) score -= 1;
     if (this.containsAny(supplyDemandText, ['thuận lợi'])) score += 1;
-    if (this.containsAny(supplyDemandText, ['kẹt lệnh', 'thanh khoản yếu'])) score -= 1;
+    if (this.containsAny(supplyDemandText, ['kẹt lệnh', 'thanh khoản yếu']))
+      score -= 1;
     if (this.containsAny(impactText, ['thuận lợi'])) score += 1;
     if (this.containsAny(impactText, ['bất lợi', 'khó'])) score -= 1;
     return score;
@@ -815,7 +868,7 @@ export class AiInsightService {
     if (!flow || !flow.length) return 'Không có dữ liệu.';
     const f30 = flow.slice(0, 30);
     const latest = f30[0];
-    
+
     const sumNet = f30.reduce((s, r) => s + (r.totalNetVolume || 0), 0);
     const sumNetVal = f30.reduce((s, r) => s + (r.totalNetValue || 0), 0);
     const sumMatch = f30.reduce((s, r) => s + (r.matchNetVolume || 0), 0);
@@ -823,14 +876,15 @@ export class AiInsightService {
     const sumDeal = f30.reduce((s, r) => s + (r.dealNetVolume || 0), 0);
     const sumDealVal = f30.reduce((s, r) => s + (r.dealNetValue || 0), 0);
 
-    const ratio = (latest.totalVolume || 0) > 0 ? (latest.totalNetVolume || 0) / latest.totalVolume : 0;
+    const ratio =
+      (latest.totalVolume || 0) > 0
+        ? (latest.totalNetVolume || 0) / latest.totalVolume
+        : 0;
 
     return `- KL ròng vs GT ròng (Mới nhất): Tổng= ${latest.totalNetVolume || 0} (${latest.totalNetValue || 0}đ) | Đặt lệnh(match)= ${latest.matchNetVolume || 0} (${latest.matchNetValue || 0}đ) | Thoả thuận(deal)= ${latest.dealNetVolume || 0} (${latest.dealNetValue || 0}đ)
 - Lũy kế 30 phiên: Tổng= ${sumNet} (${sumNetVal}đ) | Đặt lệnh= ${sumMatch} (${sumMatchVal}đ) | Thoả thuận= ${sumDeal} (${sumDealVal}đ)
 - KL ròng / volume hiện tại: ${(ratio * 100).toFixed(2)}%`;
   }
-
-
 
   // ── Build Raw Input for Frontend ──
 
@@ -900,7 +954,10 @@ export class AiInsightService {
       cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
       // Strip markdown code fences (```json ... ``` or ``` ... ```)
-      cleaned = cleaned.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
+      cleaned = cleaned
+        .replace(/^```(?:json)?\s*/m, '')
+        .replace(/\s*```$/m, '')
+        .trim();
 
       // Find the outermost JSON object if there's leading text
       const jsonStart = cleaned.indexOf('{');

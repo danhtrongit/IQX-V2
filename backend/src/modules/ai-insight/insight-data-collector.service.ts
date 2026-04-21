@@ -79,7 +79,8 @@ export class InsightDataCollector {
 
     // OHLCV: extract from QuoteService (oldest-first after sort fix)
     const ohlcvData = this.extract(ohlcvRes, []);
-    const validOhlcv = ohlcvData.length > 0 ? ohlcvData : this.extractOHLCVFromSD(sdData);
+    const validOhlcv =
+      ohlcvData.length > 0 ? ohlcvData : this.extractOHLCVFromSD(sdData);
 
     // Ensure OHLCV is sorted oldest-first (defensive)
     validOhlcv.sort((a: any, b: any) => {
@@ -90,7 +91,8 @@ export class InsightDataCollector {
 
     // Live price from price-board API (truly realtime)
     const liveData = this.extractLivePrice(livePriceRes);
-    const lastO = validOhlcv.length > 0 ? validOhlcv[validOhlcv.length - 1] : null;
+    const lastO =
+      validOhlcv.length > 0 ? validOhlcv[validOhlcv.length - 1] : null;
 
     // Build realtime: prefer live price-board data, fallback to OHLCV last bar
     let realtime = null;
@@ -177,7 +179,10 @@ export class InsightDataCollector {
 
     // Map and take last 30 bars (data should be oldest-first after QuoteService sort fix)
     const mapped = data.map((r: any) => ({
-      date: typeof r.time === 'string' && r.time.includes('T') ? r.time.split('T')[0] : r.tradingDate || r.date || r.time || '',
+      date:
+        typeof r.time === 'string' && r.time.includes('T')
+          ? r.time.split('T')[0]
+          : r.tradingDate || r.date || r.time || '',
       open: r.open ?? r.openPrice ?? 0,
       high: r.high ?? r.highPrice ?? 0,
       low: r.low ?? r.lowPrice ?? 0,

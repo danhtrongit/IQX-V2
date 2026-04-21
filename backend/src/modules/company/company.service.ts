@@ -21,7 +21,10 @@ export class CompanyService {
     const cacheKey = `company:profile:${upper}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.COMPANY);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.COMPANY,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for company profile: ${upper}`);
         return cached;
@@ -52,7 +55,10 @@ export class CompanyService {
     const cacheKey = `company:price-info:${upper}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.COMPANY);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.COMPANY,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for price info: ${upper}`);
         return cached;
@@ -94,7 +100,10 @@ export class CompanyService {
     const cacheKey = `company:shareholders:${upper}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.COMPANY);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.COMPANY,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for shareholders: ${upper}`);
         return cached;
@@ -105,7 +114,8 @@ export class CompanyService {
 
     const data = await this.http.withFallback(
       () => this.getShareholdersFromVci(upper),
-      () => this.getProfileFromKbs(upper).then((p: any) => p?.Shareholders || []),
+      () =>
+        this.getProfileFromKbs(upper).then((p: any) => p?.Shareholders || []),
       'company.getShareholders',
     );
 
@@ -125,7 +135,10 @@ export class CompanyService {
     const cacheKey = `company:managers:${upper}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.COMPANY);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.COMPANY,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for managers: ${upper}`);
         return cached;
@@ -160,7 +173,10 @@ export class CompanyService {
     const cacheKey = `company:subsidiaries:${upper}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.COMPANY);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.COMPANY,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for subsidiaries: ${upper}`);
         return cached;
@@ -195,7 +211,10 @@ export class CompanyService {
     const cacheKey = `company:events:${upper}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.COMPANY);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.COMPANY,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for events: ${upper}`);
         return cached;
@@ -226,7 +245,10 @@ export class CompanyService {
     const cacheKey = `company:news:${upper}:${page}:${limit}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.COMPANY);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.COMPANY,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for company news: ${upper}`);
         return cached;

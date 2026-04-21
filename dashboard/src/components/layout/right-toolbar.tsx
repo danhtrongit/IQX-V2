@@ -71,7 +71,7 @@ export function RightToolbar({ onActionClick }: { onActionClick?: (id: string) =
 
   const ITEMS: ToolbarItem[] = [
     { icon: ShoppingCart, label: "Đặt lệnh", id: "order", panel: "trading" },
-    { icon: Eye, label: "Theo dõi", id: "watchlist", panel: "watchlist" },
+    { icon: Eye, label: "Danh mục", id: "watchlist", panel: "watchlist" },
     { icon: Newspaper, label: "Tin tức", id: "news", panel: "news" },
     { icon: BarChart2, label: "Mẫu hình", id: "patterns" },
     { icon: Lightbulb, label: "AI Phân tích", id: "ai-insight", onClick: () => onActionClick?.("ai-insight") },

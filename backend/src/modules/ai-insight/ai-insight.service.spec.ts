@@ -131,7 +131,9 @@ describe('AiInsightService', () => {
     });
 
     it('rewrites a legacy chat completions endpoint to /responses', () => {
-      const service = createService('http://160.22.123.174:2111/v1/chat/completions');
+      const service = createService(
+        'http://160.22.123.174:2111/v1/chat/completions',
+      );
 
       expect((service as any).resolveResponsesUrl()).toBe(
         'http://160.22.123.174:2111/v1/responses',
@@ -200,12 +202,14 @@ describe('AiInsightService', () => {
     it('throws a detailed error when the stream completes without text', async () => {
       const service = createService('http://160.22.123.174:2111/v1');
 
-      jest.spyOn(global, 'fetch').mockResolvedValue(
-        createSseResponse(
-          'event: response.completed\n',
-          'data: {"type":"response.completed","response":{"status":"completed"}}\n\n',
-        ),
-      );
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(
+          createSseResponse(
+            'event: response.completed\n',
+            'data: {"type":"response.completed","response":{"status":"completed"}}\n\n',
+          ),
+        );
 
       await expect(
         (service as any).chatCompletion('system prompt', 'user prompt'),
@@ -215,12 +219,14 @@ describe('AiInsightService', () => {
     it('throws a stream error when the proxy emits an error event', async () => {
       const service = createService('http://160.22.123.174:2111/v1');
 
-      jest.spyOn(global, 'fetch').mockResolvedValue(
-        createSseResponse(
-          'event: error\n',
-          'data: {"type":"error","error":{"message":"proxy failed"}}\n\n',
-        ),
-      );
+      jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(
+          createSseResponse(
+            'event: error\n',
+            'data: {"type":"error","error":{"message":"proxy failed"}}\n\n',
+          ),
+        );
 
       await expect(
         (service as any).chatCompletion('system prompt', 'user prompt'),

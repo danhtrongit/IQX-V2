@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { existsSync, promises as fsPromises } from 'node:fs';
 import * as path from 'node:path';
 import { ProxyHttpService } from '../../common/services/proxy-http.service';
@@ -355,7 +355,10 @@ export class TradingService {
     const cacheKey = this.getSectorSignalCacheKey(group, icbCode);
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.TRADING);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.TRADING,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for sector signal: ${group}:${icbCode}`);
         return cached;
@@ -393,7 +396,10 @@ export class TradingService {
 
     if (!debug) {
       try {
-        const cached = await this.cacheService.get<any>(cacheKey, CacheType.TRADING);
+        const cached = await this.cacheService.get<any>(
+          cacheKey,
+          CacheType.TRADING,
+        );
         if (cached) {
           this.logger.debug(`Cache HIT for all sector signals: ${group}`);
           return cached;
@@ -427,9 +433,8 @@ export class TradingService {
         items: selectedItems,
         ...(debug
           ? {
-              debugInputs: await this.buildAllSectorDebugInputsFromIcbJson(
-                snapshot,
-              ),
+              debugInputs:
+                await this.buildAllSectorDebugInputsFromIcbJson(snapshot),
             }
           : {}),
       },
@@ -444,6 +449,36 @@ export class TradingService {
     }
 
     return response;
+  }
+
+  /** Sector overview grouped by signal label (for AI Dashboard) */
+  async getSectorOverview(group: string): Promise<any> {
+    const normalizedGroup = group.toUpperCase();
+    const snapshot = await this.getSectorSignalSnapshot(normalizedGroup);
+    const codes = this.getAllSectorSignalCodes(
+      snapshot,
+      SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL,
+    );
+    const items = codes
+      .map((icbCode) => this.buildSectorSignalItem(icbCode, snapshot))
+      .filter((item): item is SectorSignalItem => item !== null)
+      .sort((left, right) => this.compareSectorSignalItems(left, right));
+
+    const overview = await this.buildSectorOverview(items, snapshot);
+
+    return {
+      message: MESSAGES.COMMON.SUCCESS,
+      data: {
+        group: normalizedGroup,
+        asOfDate: snapshot.sessionStats.latestTradingDate,
+        benchmark: {
+          D: snapshot.sessionStats.benchmark.D,
+          W: snapshot.sessionStats.benchmark.W,
+          M: snapshot.sessionStats.benchmark.M,
+        },
+        overview,
+      },
+    };
   }
 
   // ---------- KBS ----------
@@ -577,7 +612,7 @@ export class TradingService {
         this.cachedIndices = result;
         this.marketGateway.broadcastMarketIndices(result);
       }
-    } catch (error) {
+    } catch (_error) {
       // Catch ngầm để không spam console, hoặc bật lên nếu thấy cần thiết!
     }
   }
@@ -773,7 +808,9 @@ export class TradingService {
         const config = SECTOR_OVERVIEW_CONFIG[label];
         const candidates = items
           .filter((item) => item.result.label === label)
-          .sort((left, right) => this.compareSectorOverviewCandidates(left, right));
+          .sort((left, right) =>
+            this.compareSectorOverviewCandidates(left, right),
+          );
         const selectedCandidates =
           config.limit === null
             ? candidates
@@ -825,10 +862,12 @@ export class TradingService {
     }
 
     return new Map(
-      Array.from(childCodesByParent.entries()).map(([parentCode, childCodes]) => [
-        parentCode,
-        Array.from(childCodes.values()),
-      ]),
+      Array.from(childCodesByParent.entries()).map(
+        ([parentCode, childCodes]) => [
+          parentCode,
+          Array.from(childCodes.values()),
+        ],
+      ),
     );
   }
 
@@ -902,7 +941,9 @@ export class TradingService {
     return {
       icb_code: icbCode,
       icbChangePercent:
-        totalPriceChange !== null && totalMarketCap !== null && totalMarketCap > 0
+        totalPriceChange !== null &&
+        totalMarketCap !== null &&
+        totalMarketCap > 0
           ? (totalPriceChange / totalMarketCap) * 100
           : null,
       totalPriceChange,
@@ -1125,10 +1166,7 @@ export class TradingService {
     };
   }
 
-  private buildBreadthSummary(
-    icbCode: number,
-    snapshot: SectorSignalSnapshot,
-  ) {
+  private buildBreadthSummary(icbCode: number, snapshot: SectorSignalSnapshot) {
     const dayItem = this.resolveAllocatedIcbItem(
       icbCode,
       snapshot.dayMap,
@@ -1151,9 +1189,15 @@ export class TradingService {
       snapshot.monthResolvedCache,
     );
     const sourceItem = dayItem || weekItem || monthItem;
-    const advancing = this.toInteger(this.toNumber(sourceItem?.totalStockIncrease));
-    const declining = this.toInteger(this.toNumber(sourceItem?.totalStockDecrease));
-    const unchanged = this.toInteger(this.toNumber(sourceItem?.totalStockNoChange));
+    const advancing = this.toInteger(
+      this.toNumber(sourceItem?.totalStockIncrease),
+    );
+    const declining = this.toInteger(
+      this.toNumber(sourceItem?.totalStockDecrease),
+    );
+    const unchanged = this.toInteger(
+      this.toNumber(sourceItem?.totalStockNoChange),
+    );
     const total = advancing + declining + unchanged;
 
     return {
@@ -1174,8 +1218,9 @@ export class TradingService {
   ) {
     const sortedStocks = [...detailStocks].sort((left, right) => {
       return (
-        this.toNumber(right.accumulatedValue) ?? 0
-      ) - (this.toNumber(left.accumulatedValue) ?? 0);
+        (this.toNumber(right.accumulatedValue) ?? 0) -
+        (this.toNumber(left.accumulatedValue) ?? 0)
+      );
     });
     const topStocks = sortedStocks.slice(0, 3);
     const totalTopValue = this.sumNumbers(
@@ -1183,7 +1228,9 @@ export class TradingService {
     );
     const totalSectorValue = item.input.VD;
     const concentrationRatio =
-      totalTopValue !== null && totalSectorValue !== null && totalSectorValue > 0
+      totalTopValue !== null &&
+      totalSectorValue !== null &&
+      totalSectorValue > 0
         ? totalTopValue / totalSectorValue
         : null;
 
@@ -1207,7 +1254,10 @@ export class TradingService {
 
     switch (item.result.label) {
       case 'Dẫn sóng':
-        if (leaders.concentrationRatio !== null && leaders.concentrationRatio >= 0.55) {
+        if (
+          leaders.concentrationRatio !== null &&
+          leaders.concentrationRatio >= 0.55
+        ) {
           return 'đà tăng còn phụ thuộc nhiều vào 3 mã đầu ngành';
         }
         if (breadthRatio !== null && breadthRatio < 0.6) {
@@ -1312,7 +1362,7 @@ export class TradingService {
         },
       );
       stocks = data?.icbDataDetail || [];
-    } catch (error) {
+    } catch (_error) {
       stocks = [];
     }
 
@@ -1355,7 +1405,8 @@ export class TradingService {
     const metadataList = (await this.getIcbCodeMetadataFromIcbJson())
       .filter(
         (item) =>
-          item.level !== null && item.level <= SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL,
+          item.level !== null &&
+          item.level <= SECTOR_SIGNAL_ALL_LEVELS_MAX_LEVEL,
       )
       .sort((left, right) => left.icbCode - right.icbCode);
     const metadataMap = new Map(
@@ -1390,7 +1441,10 @@ export class TradingService {
       total: metadataList.length,
       levelCounts,
       items: metadataList.map((metadata) => {
-        const item = this.buildSectorSignalItem(metadata.icbCode, debugSnapshot);
+        const item = this.buildSectorSignalItem(
+          metadata.icbCode,
+          debugSnapshot,
+        );
         if (item) {
           return {
             ...item,
@@ -1449,7 +1503,9 @@ export class TradingService {
 
     const filePath = this.resolveIcbCodesJsonPath();
     if (!filePath) {
-      this.logger.warn('Không tìm thấy file icb-codes.json để build debug inputs');
+      this.logger.warn(
+        'Không tìm thấy file icb-codes.json để build debug inputs',
+      );
       return [];
     }
 

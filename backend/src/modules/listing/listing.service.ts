@@ -23,7 +23,10 @@ export class ListingService {
     const cacheKey = 'listing:all-symbols';
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.LISTING,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for all symbols`);
         return cached;
@@ -53,7 +56,10 @@ export class ListingService {
     const cacheKey = `listing:symbols-by-group:${group}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.LISTING,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for symbols by group: ${group}`);
         return cached;
@@ -83,7 +89,10 @@ export class ListingService {
     const cacheKey = 'listing:sectors';
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.LISTING,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for sectors`);
         return cached;
@@ -109,7 +118,10 @@ export class ListingService {
     const cacheKey = `listing:stocks-by-sector:${code}`;
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.LISTING,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for stocks by sector: ${code}`);
         return cached;
@@ -138,7 +150,10 @@ export class ListingService {
     const cacheKey = 'listing:icb-classification';
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.LISTING,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for ICB classification`);
         return cached;
@@ -186,7 +201,10 @@ export class ListingService {
     const cacheKey = 'listing:icb-codes';
 
     try {
-      const cached = await this.cacheService.get<any>(cacheKey, CacheType.LISTING);
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.LISTING,
+      );
       if (cached) {
         this.logger.debug(`Cache HIT for ICB codes`);
         return cached;

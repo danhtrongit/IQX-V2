@@ -35,10 +35,7 @@ export class RedisCacheService {
     private metricsService: MetricsService,
   ) {}
 
-  async get<T>(
-    key: string,
-    cacheType?: CacheType,
-  ): Promise<T | null> {
+  async get<T>(key: string, cacheType?: CacheType): Promise<T | null> {
     const start = Date.now();
     const type = cacheType || CacheType.SEARCH;
     try {

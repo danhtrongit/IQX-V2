@@ -64,7 +64,9 @@ export class StocksService {
         return cached;
       }
     } catch (error) {
-      this.logger.warn(`Cache get failed, proceeding without cache: ${error.message}`);
+      this.logger.warn(
+        `Cache get failed, proceeding without cache: ${error.message}`,
+      );
     }
 
     let searchResults;
@@ -173,7 +175,10 @@ export class StocksService {
     let finalItems: SearchResult[] = items as any;
 
     if (query && query.trim()) {
-      const prioritizedItems = this.applyPriority(items as SearchResult[], query);
+      const prioritizedItems = this.applyPriority(
+        items as SearchResult[],
+        query,
+      );
       finalItems = prioritizedItems.slice(skip, skip + limit);
     }
 
@@ -265,7 +270,11 @@ export class StocksService {
       const cached = await this.cacheService.get<any>(cacheKey);
       if (cached) {
         const responseTime = Date.now() - startTime;
-        this.metricsService.recordApiRequest('/stocks/stats', responseTime, true);
+        this.metricsService.recordApiRequest(
+          '/stocks/stats',
+          responseTime,
+          true,
+        );
         return cached;
       }
     } catch (error) {

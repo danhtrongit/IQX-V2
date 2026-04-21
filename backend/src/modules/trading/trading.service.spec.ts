@@ -413,8 +413,10 @@ describe('TradingService', () => {
       });
     });
 
-    it('should require W <= -8 for Hồi kỹ thuật label', async () => {
-      const buildSectorSignal = async (weeklyChangePercent: number) => {
+    it('should require M <= -8 for Hồi kỹ thuật label', async () => {
+      // Hồi kỹ thuật rule: M <= -8 & W > 1 & D > 0 & MDW >= 1.0
+      // We vary M to test the boundary, keeping D=1, W=2 (>1), MDW >= 1.0
+      const buildSectorSignal = async (monthlyChangePercent: number) => {
         http.vciPost.mockImplementation(async (path: string, body: any) => {
           if (
             path === '/market-watch/AllocatedICB/getAllocated' &&
@@ -437,8 +439,8 @@ describe('TradingService', () => {
             return [
               {
                 icb_code: 2700,
-                icbChangePercent: weeklyChangePercent,
-                totalValue: 800,
+                icbChangePercent: 2,
+                totalValue: 150,
                 icbCodeParent: 2000,
               },
             ];
@@ -451,7 +453,7 @@ describe('TradingService', () => {
             return [
               {
                 icb_code: 2700,
-                icbChangePercent: -9,
+                icbChangePercent: monthlyChangePercent,
                 totalValue: 1000,
                 icbCodeParent: 2000,
               },
@@ -494,6 +496,9 @@ describe('TradingService', () => {
         });
       };
 
+      // M = -7.5 does not meet M <= -8, so no Hồi kỹ thuật match
+      // W = 2 > 0, MDM = 200/(1000/6) = 1.2, MWM = 150/(1000/4) = 0.6
+      // Hút tiền needs W > 0 & (MDM >= 1.4 or MWM >= 1.2) → MDM=1.2 < 1.4, MWM=0.6 < 1.2 → no match
       const noMatchResult = await buildSectorSignal(-7.5);
       expect(noMatchResult.data.item.result).toEqual({
         label: null,
@@ -501,6 +506,7 @@ describe('TradingService', () => {
         isExactMatch: false,
       });
 
+      // M = -8 meets M <= -8, W=2 > 1, D=1 > 0, MDW = 200/(150/5) = 6.67 >= 1.0
       const matchedResult = await buildSectorSignal(-8);
       expect(matchedResult.data.item.result).toEqual({
         label: 'Hồi kỹ thuật',
@@ -907,7 +913,7 @@ describe('TradingService', () => {
             },
             {
               icb_code: 1700,
-              icbChangePercent: 2,
+              icbChangePercent: 0.5,
               totalPriceChange: 20,
               totalMarketCap: 1000,
               totalValue: 100,
@@ -937,7 +943,7 @@ describe('TradingService', () => {
             },
             {
               icb_code: 1700,
-              icbChangePercent: 2,
+              icbChangePercent: 1.5,
               totalPriceChange: 10,
               totalMarketCap: 500,
               totalValue: 200,
@@ -984,9 +990,24 @@ describe('TradingService', () => {
             return {
               icb_code: 1300,
               icbDataDetail: [
-                { symbol: 'DGC', accumulatedValue: 70, refPrice: 10, matchPrice: 11 },
-                { symbol: 'CSV', accumulatedValue: 50, refPrice: 10, matchPrice: 10.5 },
-                { symbol: 'DDV', accumulatedValue: 40, refPrice: 10, matchPrice: 10.2 },
+                {
+                  symbol: 'DGC',
+                  accumulatedValue: 70,
+                  refPrice: 10,
+                  matchPrice: 11,
+                },
+                {
+                  symbol: 'CSV',
+                  accumulatedValue: 50,
+                  refPrice: 10,
+                  matchPrice: 10.5,
+                },
+                {
+                  symbol: 'DDV',
+                  accumulatedValue: 40,
+                  refPrice: 10,
+                  matchPrice: 10.2,
+                },
               ],
             };
           }
@@ -995,9 +1016,24 @@ describe('TradingService', () => {
             return {
               icb_code: 1700,
               icbDataDetail: [
-                { symbol: 'HPG', accumulatedValue: 35, refPrice: 10, matchPrice: 10.2 },
-                { symbol: 'HSG', accumulatedValue: 25, refPrice: 10, matchPrice: 10.1 },
-                { symbol: 'NKG', accumulatedValue: 20, refPrice: 10, matchPrice: 10.0 },
+                {
+                  symbol: 'HPG',
+                  accumulatedValue: 35,
+                  refPrice: 10,
+                  matchPrice: 10.2,
+                },
+                {
+                  symbol: 'HSG',
+                  accumulatedValue: 25,
+                  refPrice: 10,
+                  matchPrice: 10.1,
+                },
+                {
+                  symbol: 'NKG',
+                  accumulatedValue: 20,
+                  refPrice: 10,
+                  matchPrice: 10.0,
+                },
               ],
             };
           }
@@ -1095,15 +1131,87 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_DAY'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 1, totalValue: 200, totalStockIncrease: 7, totalStockDecrease: 2, totalStockNoChange: 1, icbCodeParent: 1000 },
-            { icb_code: 1700, icbChangePercent: 0.5, totalValue: 150, totalStockIncrease: 6, totalStockDecrease: 3, totalStockNoChange: 1, icbCodeParent: 1000 },
-            { icb_code: 2300, icbChangePercent: -1, totalValue: 140, totalStockIncrease: 5, totalStockDecrease: 3, totalStockNoChange: 2, icbCodeParent: 2000 },
-            { icb_code: 2700, icbChangePercent: -0.5, totalValue: 120, totalStockIncrease: 4, totalStockDecrease: 4, totalStockNoChange: 2, icbCodeParent: 2000 },
-            { icb_code: 3500, icbChangePercent: 0, totalValue: 100, totalStockIncrease: 5, totalStockDecrease: 3, totalStockNoChange: 2, icbCodeParent: 3000 },
-            { icb_code: 4500, icbChangePercent: 0.2, totalValue: 100, totalStockIncrease: 4, totalStockDecrease: 3, totalStockNoChange: 3, icbCodeParent: 4000 },
-            { icb_code: 4700, icbChangePercent: -1, totalValue: 100, totalStockIncrease: 3, totalStockDecrease: 4, totalStockNoChange: 3, icbCodeParent: 4000 },
-            { icb_code: 5300, icbChangePercent: 1, totalValue: 120, totalStockIncrease: 6, totalStockDecrease: 2, totalStockNoChange: 2, icbCodeParent: 5000 },
-            { icb_code: 5700, icbChangePercent: -1.5, totalValue: 90, totalStockIncrease: 2, totalStockDecrease: 5, totalStockNoChange: 3, icbCodeParent: 5000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 1,
+              totalValue: 200,
+              totalStockIncrease: 7,
+              totalStockDecrease: 2,
+              totalStockNoChange: 1,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 1700,
+              icbChangePercent: 0.5,
+              totalValue: 150,
+              totalStockIncrease: 6,
+              totalStockDecrease: 3,
+              totalStockNoChange: 1,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 2300,
+              icbChangePercent: -1,
+              totalValue: 140,
+              totalStockIncrease: 5,
+              totalStockDecrease: 3,
+              totalStockNoChange: 2,
+              icbCodeParent: 2000,
+            },
+            {
+              icb_code: 2700,
+              icbChangePercent: -0.5,
+              totalValue: 120,
+              totalStockIncrease: 4,
+              totalStockDecrease: 4,
+              totalStockNoChange: 2,
+              icbCodeParent: 2000,
+            },
+            {
+              icb_code: 3500,
+              icbChangePercent: 0,
+              totalValue: 100,
+              totalStockIncrease: 5,
+              totalStockDecrease: 3,
+              totalStockNoChange: 2,
+              icbCodeParent: 3000,
+            },
+            {
+              icb_code: 4500,
+              icbChangePercent: 0.2,
+              totalValue: 100,
+              totalStockIncrease: 4,
+              totalStockDecrease: 3,
+              totalStockNoChange: 3,
+              icbCodeParent: 4000,
+            },
+            {
+              icb_code: 4700,
+              icbChangePercent: -1,
+              totalValue: 100,
+              totalStockIncrease: 3,
+              totalStockDecrease: 4,
+              totalStockNoChange: 3,
+              icbCodeParent: 4000,
+            },
+            {
+              icb_code: 5300,
+              icbChangePercent: 1,
+              totalValue: 120,
+              totalStockIncrease: 6,
+              totalStockDecrease: 2,
+              totalStockNoChange: 2,
+              icbCodeParent: 5000,
+            },
+            {
+              icb_code: 5700,
+              icbChangePercent: -1.5,
+              totalValue: 90,
+              totalStockIncrease: 2,
+              totalStockDecrease: 5,
+              totalStockNoChange: 3,
+              icbCodeParent: 5000,
+            },
           ];
         }
 
@@ -1112,15 +1220,87 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_WEEK'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 4, totalValue: 400, totalStockIncrease: 7, totalStockDecrease: 2, totalStockNoChange: 1, icbCodeParent: 1000 },
-            { icb_code: 1700, icbChangePercent: 3, totalValue: 300, totalStockIncrease: 6, totalStockDecrease: 3, totalStockNoChange: 1, icbCodeParent: 1000 },
-            { icb_code: 2300, icbChangePercent: 1.8, totalValue: 210, totalStockIncrease: 5, totalStockDecrease: 3, totalStockNoChange: 2, icbCodeParent: 2000 },
-            { icb_code: 2700, icbChangePercent: 1.2, totalValue: 180, totalStockIncrease: 4, totalStockDecrease: 4, totalStockNoChange: 2, icbCodeParent: 2000 },
-            { icb_code: 3500, icbChangePercent: 0.5, totalValue: 160, totalStockIncrease: 5, totalStockDecrease: 3, totalStockNoChange: 2, icbCodeParent: 3000 },
-            { icb_code: 4500, icbChangePercent: 0, totalValue: 150, totalStockIncrease: 4, totalStockDecrease: 3, totalStockNoChange: 3, icbCodeParent: 4000 },
-            { icb_code: 4700, icbChangePercent: -1, totalValue: 150, totalStockIncrease: 3, totalStockDecrease: 4, totalStockNoChange: 3, icbCodeParent: 4000 },
-            { icb_code: 5300, icbChangePercent: 1.9, totalValue: 165, totalStockIncrease: 6, totalStockDecrease: 2, totalStockNoChange: 2, icbCodeParent: 5000 },
-            { icb_code: 5700, icbChangePercent: -2, totalValue: 135, totalStockIncrease: 2, totalStockDecrease: 5, totalStockNoChange: 3, icbCodeParent: 5000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 4,
+              totalValue: 400,
+              totalStockIncrease: 7,
+              totalStockDecrease: 2,
+              totalStockNoChange: 1,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 1700,
+              icbChangePercent: 3,
+              totalValue: 300,
+              totalStockIncrease: 6,
+              totalStockDecrease: 3,
+              totalStockNoChange: 1,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 2300,
+              icbChangePercent: 1.8,
+              totalValue: 210,
+              totalStockIncrease: 5,
+              totalStockDecrease: 3,
+              totalStockNoChange: 2,
+              icbCodeParent: 2000,
+            },
+            {
+              icb_code: 2700,
+              icbChangePercent: 1.2,
+              totalValue: 180,
+              totalStockIncrease: 4,
+              totalStockDecrease: 4,
+              totalStockNoChange: 2,
+              icbCodeParent: 2000,
+            },
+            {
+              icb_code: 3500,
+              icbChangePercent: 0.5,
+              totalValue: 160,
+              totalStockIncrease: 5,
+              totalStockDecrease: 3,
+              totalStockNoChange: 2,
+              icbCodeParent: 3000,
+            },
+            {
+              icb_code: 4500,
+              icbChangePercent: 0,
+              totalValue: 150,
+              totalStockIncrease: 4,
+              totalStockDecrease: 3,
+              totalStockNoChange: 3,
+              icbCodeParent: 4000,
+            },
+            {
+              icb_code: 4700,
+              icbChangePercent: -1,
+              totalValue: 150,
+              totalStockIncrease: 3,
+              totalStockDecrease: 4,
+              totalStockNoChange: 3,
+              icbCodeParent: 4000,
+            },
+            {
+              icb_code: 5300,
+              icbChangePercent: 1.9,
+              totalValue: 165,
+              totalStockIncrease: 6,
+              totalStockDecrease: 2,
+              totalStockNoChange: 2,
+              icbCodeParent: 5000,
+            },
+            {
+              icb_code: 5700,
+              icbChangePercent: -2,
+              totalValue: 135,
+              totalStockIncrease: 2,
+              totalStockDecrease: 5,
+              totalStockNoChange: 3,
+              icbCodeParent: 5000,
+            },
           ];
         }
 
@@ -1129,49 +1309,211 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_MONTH'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 9, totalValue: 800, totalStockIncrease: 7, totalStockDecrease: 2, totalStockNoChange: 1, icbCodeParent: 1000 },
-            { icb_code: 1700, icbChangePercent: 5, totalValue: 700, totalStockIncrease: 6, totalStockDecrease: 3, totalStockNoChange: 1, icbCodeParent: 1000 },
-            { icb_code: 2300, icbChangePercent: 3, totalValue: 560, totalStockIncrease: 5, totalStockDecrease: 3, totalStockNoChange: 2, icbCodeParent: 2000 },
-            { icb_code: 2700, icbChangePercent: -1, totalValue: 480, totalStockIncrease: 4, totalStockDecrease: 4, totalStockNoChange: 2, icbCodeParent: 2000 },
-            { icb_code: 3500, icbChangePercent: 0, totalValue: 440, totalStockIncrease: 5, totalStockDecrease: 3, totalStockNoChange: 2, icbCodeParent: 3000 },
-            { icb_code: 4500, icbChangePercent: 1, totalValue: 600, totalStockIncrease: 4, totalStockDecrease: 3, totalStockNoChange: 3, icbCodeParent: 4000 },
-            { icb_code: 4700, icbChangePercent: -2, totalValue: 600, totalStockIncrease: 3, totalStockDecrease: 4, totalStockNoChange: 3, icbCodeParent: 4000 },
-            { icb_code: 5300, icbChangePercent: 5, totalValue: 600, totalStockIncrease: 6, totalStockDecrease: 2, totalStockNoChange: 2, icbCodeParent: 5000 },
-            { icb_code: 5700, icbChangePercent: -5, totalValue: 600, totalStockIncrease: 2, totalStockDecrease: 5, totalStockNoChange: 3, icbCodeParent: 5000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 9,
+              totalValue: 800,
+              totalStockIncrease: 7,
+              totalStockDecrease: 2,
+              totalStockNoChange: 1,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 1700,
+              icbChangePercent: 5,
+              totalValue: 700,
+              totalStockIncrease: 6,
+              totalStockDecrease: 3,
+              totalStockNoChange: 1,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 2300,
+              icbChangePercent: 3,
+              totalValue: 560,
+              totalStockIncrease: 5,
+              totalStockDecrease: 3,
+              totalStockNoChange: 2,
+              icbCodeParent: 2000,
+            },
+            {
+              icb_code: 2700,
+              icbChangePercent: -1,
+              totalValue: 480,
+              totalStockIncrease: 4,
+              totalStockDecrease: 4,
+              totalStockNoChange: 2,
+              icbCodeParent: 2000,
+            },
+            {
+              icb_code: 3500,
+              icbChangePercent: 0,
+              totalValue: 440,
+              totalStockIncrease: 5,
+              totalStockDecrease: 3,
+              totalStockNoChange: 2,
+              icbCodeParent: 3000,
+            },
+            {
+              icb_code: 4500,
+              icbChangePercent: 1,
+              totalValue: 600,
+              totalStockIncrease: 4,
+              totalStockDecrease: 3,
+              totalStockNoChange: 3,
+              icbCodeParent: 4000,
+            },
+            {
+              icb_code: 4700,
+              icbChangePercent: -2,
+              totalValue: 600,
+              totalStockIncrease: 3,
+              totalStockDecrease: 4,
+              totalStockNoChange: 3,
+              icbCodeParent: 4000,
+            },
+            {
+              icb_code: 5300,
+              icbChangePercent: 5,
+              totalValue: 600,
+              totalStockIncrease: 6,
+              totalStockDecrease: 2,
+              totalStockNoChange: 2,
+              icbCodeParent: 5000,
+            },
+            {
+              icb_code: 5700,
+              icbChangePercent: -5,
+              totalValue: 600,
+              totalStockIncrease: 2,
+              totalStockDecrease: 5,
+              totalStockNoChange: 3,
+              icbCodeParent: 5000,
+            },
           ];
         }
 
         if (path === '/market-watch/AllocatedICB/getAllocatedDetail') {
           const detailMap: Record<number, any[]> = {
             1300: [
-              { symbol: 'DGC', accumulatedValue: 80, refPrice: 10, matchPrice: 10.8 },
-              { symbol: 'CSV', accumulatedValue: 60, refPrice: 10, matchPrice: 10.5 },
-              { symbol: 'DDV', accumulatedValue: 40, refPrice: 10, matchPrice: 10.2 },
+              {
+                symbol: 'DGC',
+                accumulatedValue: 80,
+                refPrice: 10,
+                matchPrice: 10.8,
+              },
+              {
+                symbol: 'CSV',
+                accumulatedValue: 60,
+                refPrice: 10,
+                matchPrice: 10.5,
+              },
+              {
+                symbol: 'DDV',
+                accumulatedValue: 40,
+                refPrice: 10,
+                matchPrice: 10.2,
+              },
             ],
             2300: [
-              { symbol: 'SSI', accumulatedValue: 50, refPrice: 10, matchPrice: 10.1 },
-              { symbol: 'VND', accumulatedValue: 45, refPrice: 10, matchPrice: 10.0 },
-              { symbol: 'HCM', accumulatedValue: 30, refPrice: 10, matchPrice: 9.9 },
+              {
+                symbol: 'SSI',
+                accumulatedValue: 50,
+                refPrice: 10,
+                matchPrice: 10.1,
+              },
+              {
+                symbol: 'VND',
+                accumulatedValue: 45,
+                refPrice: 10,
+                matchPrice: 10.0,
+              },
+              {
+                symbol: 'HCM',
+                accumulatedValue: 30,
+                refPrice: 10,
+                matchPrice: 9.9,
+              },
             ],
             2700: [
-              { symbol: 'GEE', accumulatedValue: 40, refPrice: 10, matchPrice: 10.1 },
-              { symbol: 'CII', accumulatedValue: 35, refPrice: 10, matchPrice: 10.0 },
-              { symbol: 'HHV', accumulatedValue: 25, refPrice: 10, matchPrice: 9.9 },
+              {
+                symbol: 'GEE',
+                accumulatedValue: 40,
+                refPrice: 10,
+                matchPrice: 10.1,
+              },
+              {
+                symbol: 'CII',
+                accumulatedValue: 35,
+                refPrice: 10,
+                matchPrice: 10.0,
+              },
+              {
+                symbol: 'HHV',
+                accumulatedValue: 25,
+                refPrice: 10,
+                matchPrice: 9.9,
+              },
             ],
             4500: [
-              { symbol: 'DHG', accumulatedValue: 35, refPrice: 10, matchPrice: 10.1 },
-              { symbol: 'DMC', accumulatedValue: 25, refPrice: 10, matchPrice: 10.0 },
-              { symbol: 'IMP', accumulatedValue: 20, refPrice: 10, matchPrice: 9.9 },
+              {
+                symbol: 'DHG',
+                accumulatedValue: 35,
+                refPrice: 10,
+                matchPrice: 10.1,
+              },
+              {
+                symbol: 'DMC',
+                accumulatedValue: 25,
+                refPrice: 10,
+                matchPrice: 10.0,
+              },
+              {
+                symbol: 'IMP',
+                accumulatedValue: 20,
+                refPrice: 10,
+                matchPrice: 9.9,
+              },
             ],
             4700: [
-              { symbol: 'JVC', accumulatedValue: 30, refPrice: 10, matchPrice: 9.8 },
-              { symbol: 'TNH', accumulatedValue: 22, refPrice: 10, matchPrice: 9.9 },
-              { symbol: 'DVN', accumulatedValue: 18, refPrice: 10, matchPrice: 10.0 },
+              {
+                symbol: 'JVC',
+                accumulatedValue: 30,
+                refPrice: 10,
+                matchPrice: 9.8,
+              },
+              {
+                symbol: 'TNH',
+                accumulatedValue: 22,
+                refPrice: 10,
+                matchPrice: 9.9,
+              },
+              {
+                symbol: 'DVN',
+                accumulatedValue: 18,
+                refPrice: 10,
+                matchPrice: 10.0,
+              },
             ],
             5300: [
-              { symbol: 'MWG', accumulatedValue: 50, refPrice: 10, matchPrice: 10.2 },
-              { symbol: 'DGW', accumulatedValue: 40, refPrice: 10, matchPrice: 10.1 },
-              { symbol: 'FRT', accumulatedValue: 30, refPrice: 10, matchPrice: 10.0 },
+              {
+                symbol: 'MWG',
+                accumulatedValue: 50,
+                refPrice: 10,
+                matchPrice: 10.2,
+              },
+              {
+                symbol: 'DGW',
+                accumulatedValue: 40,
+                refPrice: 10,
+                matchPrice: 10.1,
+              },
+              {
+                symbol: 'FRT',
+                accumulatedValue: 30,
+                refPrice: 10,
+                matchPrice: 10.0,
+              },
             ],
           };
 
@@ -1199,15 +1541,60 @@ describe('TradingService', () => {
       http.vciGraphql.mockResolvedValue({
         data: {
           ListIcbCode: [
-            { icbCode: '1300', level: 2, icbName: 'Hóa chất', enIcbName: 'Chemicals' },
-            { icbCode: '1700', level: 2, icbName: 'Tài nguyên Cơ bản', enIcbName: 'Basic Resources' },
-            { icbCode: '2300', level: 2, icbName: 'Dịch vụ tài chính', enIcbName: 'Financial Services' },
-            { icbCode: '2700', level: 2, icbName: 'Hàng & Dịch vụ Công nghiệp', enIcbName: 'Industrial Goods & Services' },
-            { icbCode: '3500', level: 2, icbName: 'Thực phẩm & Đồ uống', enIcbName: 'Food & Beverage' },
-            { icbCode: '4500', level: 2, icbName: 'Thiết bị & Dịch vụ Y tế', enIcbName: 'Health Care Equipment & Services' },
-            { icbCode: '4700', level: 2, icbName: 'Dịch vụ Chăm sóc Sức khỏe', enIcbName: 'Health Care Providers' },
-            { icbCode: '5300', level: 2, icbName: 'Bán lẻ', enIcbName: 'Retailers' },
-            { icbCode: '5700', level: 2, icbName: 'Du lịch và Giải trí', enIcbName: 'Travel & Leisure' },
+            {
+              icbCode: '1300',
+              level: 2,
+              icbName: 'Hóa chất',
+              enIcbName: 'Chemicals',
+            },
+            {
+              icbCode: '1700',
+              level: 2,
+              icbName: 'Tài nguyên Cơ bản',
+              enIcbName: 'Basic Resources',
+            },
+            {
+              icbCode: '2300',
+              level: 2,
+              icbName: 'Dịch vụ tài chính',
+              enIcbName: 'Financial Services',
+            },
+            {
+              icbCode: '2700',
+              level: 2,
+              icbName: 'Hàng & Dịch vụ Công nghiệp',
+              enIcbName: 'Industrial Goods & Services',
+            },
+            {
+              icbCode: '3500',
+              level: 2,
+              icbName: 'Thực phẩm & Đồ uống',
+              enIcbName: 'Food & Beverage',
+            },
+            {
+              icbCode: '4500',
+              level: 2,
+              icbName: 'Thiết bị & Dịch vụ Y tế',
+              enIcbName: 'Health Care Equipment & Services',
+            },
+            {
+              icbCode: '4700',
+              level: 2,
+              icbName: 'Dịch vụ Chăm sóc Sức khỏe',
+              enIcbName: 'Health Care Providers',
+            },
+            {
+              icbCode: '5300',
+              level: 2,
+              icbName: 'Bán lẻ',
+              enIcbName: 'Retailers',
+            },
+            {
+              icbCode: '5700',
+              level: 2,
+              icbName: 'Du lịch và Giải trí',
+              enIcbName: 'Travel & Leisure',
+            },
           ],
         },
       });
@@ -1228,9 +1615,24 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_DAY'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 1, totalValue: 600, icbCodeParent: 1000 },
-            { icb_code: 1700, icbChangePercent: 1, totalValue: 400, icbCodeParent: 1000 },
-            { icb_code: 2300, icbChangePercent: 1, totalValue: 300, icbCodeParent: 2000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 1,
+              totalValue: 600,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 1700,
+              icbChangePercent: 1,
+              totalValue: 400,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 2300,
+              icbChangePercent: 1,
+              totalValue: 300,
+              icbCodeParent: 2000,
+            },
           ];
         }
 
@@ -1239,9 +1641,24 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_WEEK'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 3, totalValue: 600, icbCodeParent: 1000 },
-            { icb_code: 1700, icbChangePercent: 3, totalValue: 500, icbCodeParent: 1000 },
-            { icb_code: 2300, icbChangePercent: 3, totalValue: 450, icbCodeParent: 2000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 3,
+              totalValue: 600,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 1700,
+              icbChangePercent: 3,
+              totalValue: 500,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 2300,
+              icbChangePercent: 3,
+              totalValue: 450,
+              icbCodeParent: 2000,
+            },
           ];
         }
 
@@ -1250,9 +1667,24 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_MONTH'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 1000 },
-            { icb_code: 1700, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 1000 },
-            { icb_code: 2300, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 2000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 6,
+              totalValue: 1000,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 1700,
+              icbChangePercent: 6,
+              totalValue: 1000,
+              icbCodeParent: 1000,
+            },
+            {
+              icb_code: 2300,
+              icbChangePercent: 6,
+              totalValue: 1000,
+              icbCodeParent: 2000,
+            },
           ];
         }
 
@@ -1274,9 +1706,24 @@ describe('TradingService', () => {
       http.vciGraphql.mockResolvedValue({
         data: {
           ListIcbCode: [
-            { icbCode: '1300', level: 2, icbName: 'Hóa chất', enIcbName: 'Chemicals' },
-            { icbCode: '1700', level: 2, icbName: 'Tài nguyên Cơ bản', enIcbName: 'Basic Resources' },
-            { icbCode: '2300', level: 2, icbName: 'Dịch vụ tài chính', enIcbName: 'Financial Services' },
+            {
+              icbCode: '1300',
+              level: 2,
+              icbName: 'Hóa chất',
+              enIcbName: 'Chemicals',
+            },
+            {
+              icbCode: '1700',
+              level: 2,
+              icbName: 'Tài nguyên Cơ bản',
+              enIcbName: 'Basic Resources',
+            },
+            {
+              icbCode: '2300',
+              level: 2,
+              icbName: 'Dịch vụ tài chính',
+              enIcbName: 'Financial Services',
+            },
           ],
         },
       });
@@ -1295,9 +1742,11 @@ describe('TradingService', () => {
       expect(result.data.items.map((item: any) => item.icbCode)).toEqual([
         1300, 1700, 2300,
       ]);
-      expect(result.data.items.every((item: any) => item.result.label === 'Dẫn sóng')).toBe(
-        true,
-      );
+      expect(
+        result.data.items.every(
+          (item: any) => item.result.label === 'Dẫn sóng',
+        ),
+      ).toBe(true);
     });
 
     it('should return debug inputs for all sectors level 1-2 from icb-codes.json metadata', async () => {
@@ -1307,7 +1756,12 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_DAY'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 1, totalValue: 300, icbCodeParent: 1000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 1,
+              totalValue: 300,
+              icbCodeParent: 1000,
+            },
           ];
         }
 
@@ -1316,7 +1770,12 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_WEEK'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 3, totalValue: 400, icbCodeParent: 1000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 3,
+              totalValue: 400,
+              icbCodeParent: 1000,
+            },
           ];
         }
 
@@ -1325,7 +1784,12 @@ describe('TradingService', () => {
           body.timeFrame === 'ONE_MONTH'
         ) {
           return [
-            { icb_code: 1300, icbChangePercent: 6, totalValue: 1000, icbCodeParent: 1000 },
+            {
+              icb_code: 1300,
+              icbChangePercent: 6,
+              totalValue: 1000,
+              icbCodeParent: 1000,
+            },
           ];
         }
 
@@ -1347,7 +1811,12 @@ describe('TradingService', () => {
       http.vciGraphql.mockResolvedValue({
         data: {
           ListIcbCode: [
-            { icbCode: '1300', level: 2, icbName: 'Hóa chất', enIcbName: 'Chemicals' },
+            {
+              icbCode: '1300',
+              level: 2,
+              icbName: 'Hóa chất',
+              enIcbName: 'Chemicals',
+            },
           ],
         },
       });
@@ -1355,10 +1824,30 @@ describe('TradingService', () => {
       jest
         .spyOn(service as any, 'getIcbCodeMetadataFromIcbJson')
         .mockResolvedValue([
-          { icbCode: 1000, level: 1, icbName: 'Nguyên vật liệu', enIcbName: 'Basic Materials' },
-          { icbCode: 1300, level: 2, icbName: 'Hóa chất', enIcbName: 'Chemicals' },
-          { icbCode: 1700, level: 2, icbName: 'Tài nguyên Cơ bản', enIcbName: 'Basic Resources' },
-          { icbCode: 1730, level: 3, icbName: 'Lâm nghiệp và Giấy', enIcbName: 'Forestry & Paper' },
+          {
+            icbCode: 1000,
+            level: 1,
+            icbName: 'Nguyên vật liệu',
+            enIcbName: 'Basic Materials',
+          },
+          {
+            icbCode: 1300,
+            level: 2,
+            icbName: 'Hóa chất',
+            enIcbName: 'Chemicals',
+          },
+          {
+            icbCode: 1700,
+            level: 2,
+            icbName: 'Tài nguyên Cơ bản',
+            enIcbName: 'Basic Resources',
+          },
+          {
+            icbCode: 1730,
+            level: 3,
+            icbName: 'Lâm nghiệp và Giấy',
+            enIcbName: 'Forestry & Paper',
+          },
         ]);
 
       const result = await service.getAllSectorSignals({
@@ -1397,7 +1886,9 @@ describe('TradingService', () => {
       });
       expect(noDataItem.input.D).toBeNull();
       expect(
-        result.data.debugInputs.items.find((item: any) => item.icbCode === 1730),
+        result.data.debugInputs.items.find(
+          (item: any) => item.icbCode === 1730,
+        ),
       ).toBeUndefined();
 
       const hasDataItem = result.data.debugInputs.items.find(
@@ -1521,10 +2012,20 @@ describe('TradingService', () => {
         if (path === '/market-watch/AllocatedICB/getAllocatedDetail') {
           const detailMap: Record<number, any[]> = {
             2300: [
-              { symbol: 'SSI', accumulatedValue: 60, refPrice: 10, matchPrice: 10.1 },
+              {
+                symbol: 'SSI',
+                accumulatedValue: 60,
+                refPrice: 10,
+                matchPrice: 10.1,
+              },
             ],
             2350: [
-              { symbol: 'ABC', accumulatedValue: 80, refPrice: 10, matchPrice: 10.2 },
+              {
+                symbol: 'ABC',
+                accumulatedValue: 80,
+                refPrice: 10,
+                matchPrice: 10.2,
+              },
             ],
           };
 
@@ -1580,8 +2081,12 @@ describe('TradingService', () => {
       expect(result.data.items.map((item: any) => item.icbCode)).toEqual([
         2300,
       ]);
-      expect(result.data.items.find((item: any) => item.icbCode === 2351)).toBeUndefined();
-      expect(result.data.items.find((item: any) => item.icbCode === 2350)).toBeUndefined();
+      expect(
+        result.data.items.find((item: any) => item.icbCode === 2351),
+      ).toBeUndefined();
+      expect(
+        result.data.items.find((item: any) => item.icbCode === 2350),
+      ).toBeUndefined();
       expect(result.data).not.toHaveProperty('overview');
     });
 

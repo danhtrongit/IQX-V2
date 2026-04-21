@@ -23,7 +23,7 @@ export class MarketDataGateway
   private logger: Logger = new Logger('MarketDataGateway');
   private connectedClients = 0;
 
-  afterInit(server: Server) {
+  afterInit(_server: Server) {
     this.logger.log('MarketDataGateway initialized');
   }
 

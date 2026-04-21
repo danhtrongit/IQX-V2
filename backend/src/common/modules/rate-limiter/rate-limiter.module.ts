@@ -10,7 +10,10 @@ import { ThrottlerGuardImpl } from './throttler-guard.impl';
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const defaultLimit = configService.get<number>('RATE_LIMIT_DEFAULT', 100);
+        const defaultLimit = configService.get<number>(
+          'RATE_LIMIT_DEFAULT',
+          100,
+        );
         const defaultTtl = configService.get<number>('RATE_LIMIT_TTL', 60000);
 
         return [

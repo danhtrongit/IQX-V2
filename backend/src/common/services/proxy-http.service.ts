@@ -159,6 +159,122 @@ export class ProxyHttpService {
     return this.get<T>(url.toString(), DATA_SOURCES.MSN.HEADERS);
   }
 
+  /** MAS GET shorthand */
+  async masGet<T = unknown>(
+    path: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
+    const url = new URL(`${DATA_SOURCES.MAS.BASE_URL}${path}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+      });
+    }
+    return this.get<T>(url.toString(), DATA_SOURCES.MAS.HEADERS);
+  }
+
+  /** MBK POST (x-www-form-urlencoded) shorthand */
+  async mbkPost<T = unknown>(
+    body: Record<string, string | number>,
+  ): Promise<T> {
+    const form = new URLSearchParams();
+    Object.entries(body).forEach(([k, v]) => form.append(k, String(v)));
+
+    const config: AxiosRequestConfig = {
+      headers: {
+        ...this.buildHeaders(DATA_SOURCES.MBK.HEADERS),
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      },
+      timeout: 10000,
+    };
+    const { data } = await axios.post<T>(
+      `${DATA_SOURCES.MBK.BASE_URL}/data/reportdatatopbynormtype`,
+      form.toString(),
+      config,
+    );
+    return data;
+  }
+
+  /** FMARKET GET shorthand */
+  async fmarketGet<T = unknown>(path: string): Promise<T> {
+    const url = `${DATA_SOURCES.FMARKET.BASE_URL}${path}`;
+    return this.get<T>(url, DATA_SOURCES.FMARKET.HEADERS);
+  }
+
+  /** FMARKET POST shorthand */
+  async fmarketPost<T = unknown>(path: string, body: unknown): Promise<T> {
+    const url = `${DATA_SOURCES.FMARKET.BASE_URL}${path}`;
+    return this.post<T>(url, body, DATA_SOURCES.FMARKET.HEADERS);
+  }
+
+  /** VNDIRECT GET shorthand */
+  async vndGet<T = unknown>(
+    path: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
+    const url = new URL(`${DATA_SOURCES.VND.BASE_URL}${path}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+      });
+    }
+    return this.get<T>(url.toString(), DATA_SOURCES.VND.HEADERS);
+  }
+
+  /** Simplize GET shorthand */
+  async simplizeGet<T = unknown>(
+    path: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
+    const url = new URL(`${DATA_SOURCES.SIMPLIZE.BASE_URL}${path}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+      });
+    }
+    return this.get<T>(url.toString(), DATA_SOURCES.SIMPLIZE.HEADERS);
+  }
+
+  /** Dukascopy GET shorthand */
+  async dukascopyGet<T = unknown>(path: string): Promise<T> {
+    const url = `${DATA_SOURCES.DUKASCOPY.BASE_URL}${path}`;
+    return this.get<T>(url, DATA_SOURCES.DUKASCOPY.HEADERS);
+  }
+
+  /** Binance GET shorthand */
+  async binanceGet<T = unknown>(
+    path: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
+    const url = new URL(`${DATA_SOURCES.BINANCE.BASE_URL}${path}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+      });
+    }
+    return this.get<T>(url.toString(), DATA_SOURCES.BINANCE.HEADERS);
+  }
+
+  /** VCI Screener GET shorthand */
+  async vciScreenerGet<T = unknown>(
+    path: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
+    const url = new URL(`${DATA_SOURCES.VCI.IQ_BASE_URL}${path}`);
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+      });
+    }
+    return this.get<T>(url.toString(), DATA_SOURCES.VCI.SCREENER_HEADERS);
+  }
+
+  /** VCI Screener POST shorthand */
+  async vciScreenerPost<T = unknown>(path: string, body: unknown): Promise<T> {
+    const url = `${DATA_SOURCES.VCI.IQ_BASE_URL}${path}`;
+    return this.post<T>(url, body, DATA_SOURCES.VCI.SCREENER_HEADERS);
+  }
+
   /** Try primary source, fallback to secondary on error or empty result */
   async withFallback<T>(
     primary: () => Promise<T>,

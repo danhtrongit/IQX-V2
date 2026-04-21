@@ -4,12 +4,12 @@ import {
   Briefcase,
   History,
   Plus,
-  Trash2,
+  X,
   Loader2,
   Star,
   LogIn,
   Clock,
-  ChevronDown,
+  Search,
 } from "lucide-react"
 import { StockLogo } from "@/components/stock/stock-logo"
 import { Button } from "@/components/ui/button"
@@ -50,13 +50,6 @@ interface OrderItem {
 // ── Utility ──
 const fp = (n: number) => (!n || n <= 0 ? "—" : (n * 1000).toLocaleString("vi-VN", { maximumFractionDigits: 0 }))
 const fv = (n: number) => new Intl.NumberFormat("vi-VN").format(Math.round(n))
-const fc = (v: number) => {
-  if (!v) return "—"
-  if (v >= 1e9) return (v / 1e9).toFixed(1) + "B"
-  if (v >= 1e6) return (v / 1e6).toFixed(1) + "M"
-  if (v >= 1e3) return (v / 1e3).toFixed(0) + "K"
-  return String(v)
-}
 
 function pc(price: number, ref: number, ceil: number, floor: number): string {
   if (!price || !ref) return "text-foreground"
@@ -71,12 +64,10 @@ function pc(price: number, ref: number, ceil: number, floor: number): string {
 function StockRow({
   symbol,
   d,
-  extra,
   onClick,
 }: {
   symbol: string
   d?: PriceBoardData
-  extra?: React.ReactNode
   onClick: () => void
 }) {
   const price = d?.closePrice || 0
@@ -98,33 +89,11 @@ function StockRow({
       <div className="flex items-center gap-2">
         <StockLogo symbol={symbol} size={28} />
         <div className="flex-1 min-w-0 flex justify-between items-center">
-          {/* Left: Symbol & Stats */}
+          {/* Left: Symbol */}
           <div className="flex flex-col">
             <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
               {symbol}
             </span>
-            {d && price > 0 ? (
-              <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-muted-foreground/80 font-medium">
-                <span>KL: {fc(d.totalVolume)}</span>
-                {(() => {
-                  const nn = (d.foreignBuy || 0) - (d.foreignSell || 0)
-                  if (nn === 0) return null
-                  return (
-                    <>
-                      <span className="opacity-40">·</span>
-                      <span className={nn >= 0 ? "text-emerald-500/80" : "text-red-500/80"}>
-                        NN: {nn >= 0 ? "+" : ""}{fc(nn)}
-                      </span>
-                    </>
-                  )
-                })()}
-              </div>
-            ) : extra ? null : (
-              <span className="text-[9px] text-muted-foreground/50 mt-0.5">---</span>
-            )}
-            {extra && (
-              <div className="mt-0.5">{extra}</div>
-            )}
           </div>
 
           {/* Right: Price & Percent */}
@@ -170,9 +139,8 @@ function PulseDot() {
 function WatchlistTabContent() {
   const [lists, setLists] = useState<WatchlistItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [newName, setNewName] = useState("")
-  const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set())
+  const [addingSymbol, setAddingSymbol] = useState(false)
+  const [newSymbol, setNewSymbol] = useState("")
   const navigate = useNavigate()
 
   const fetchLists = useCallback(async () => {
@@ -181,7 +149,6 @@ function WatchlistTabContent() {
       const res = await api.get("watchlist").json<{ data: WatchlistItem[] }>()
       const data = res.data || []
       setLists(data)
-      setExpandedLists(new Set(data.map((l) => l.id)))
     } catch {
       setLists([])
     } finally {
@@ -197,29 +164,32 @@ function WatchlistTabContent() {
   )
   const { priceMap } = usePrices(allSymbols)
 
-  const handleCreate = async () => {
-    if (!newName.trim()) return
-    setCreating(true)
+  const handleAddSymbol = async () => {
+    const sym = newSymbol.trim().toUpperCase()
+    if (!sym) return
+    setAddingSymbol(true)
     try {
-      await api.post("watchlist", { json: { name: newName.trim() } }).json()
-      setNewName("")
+      // Add to the first watchlist, or create one if none exists
+      if (lists.length === 0) {
+        await api.post("watchlist", { json: { name: "Danh mục", symbols: [sym] } }).json()
+      } else {
+        await api.put(`watchlist/${lists[0].id}/symbols`, { json: { symbol: sym } }).json()
+      }
+      setNewSymbol("")
       fetchLists()
-    } finally {
-      setCreating(false)
+    } catch {}
+    finally {
+      setAddingSymbol(false)
     }
   }
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    try { await api.delete(`watchlist/${id}`).json(); fetchLists() } catch {}
-  }
-
-  const toggleExpand = (id: string) => {
-    setExpandedLists((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+  const handleRemoveSymbol = async (sym: string) => {
+    try {
+      if (lists.length > 0) {
+        await api.delete(`watchlist/${lists[0].id}/symbols/${sym}`).json()
+        fetchLists()
+      }
+    } catch {}
   }
 
   if (loading) {
@@ -246,21 +216,24 @@ function WatchlistTabContent() {
         </span>
       </div>
 
-      {/* Create */}
+      {/* Add symbol */}
       <div className="px-1.5 py-1.5 border-b border-border/40">
         <div className="flex gap-1">
-          <Input
-            placeholder="Tên danh sách mới..."
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            className="h-6 text-[10px] flex-1 bg-muted/20 border-transparent focus:border-primary/50 px-2"
-          />
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground/50" />
+            <Input
+              placeholder="Thêm mã cổ phiếu..."
+              value={newSymbol}
+              onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && handleAddSymbol()}
+              className="h-6 text-[10px] bg-muted/20 border-transparent focus:border-primary/50 pl-6 pr-2"
+            />
+          </div>
           <Button
             size="icon"
             className="size-6 shrink-0"
-            onClick={handleCreate}
-            disabled={!newName.trim() || creating}
+            onClick={handleAddSymbol}
+            disabled={!newSymbol.trim() || addingSymbol}
           >
             <Plus className="size-3" />
           </Button>
@@ -269,69 +242,32 @@ function WatchlistTabContent() {
 
       <ScrollArea className="flex-1 min-h-0">
         <div className="py-0.5">
-          {lists.length === 0 ? (
+          {allSymbols.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Star className="size-7 mb-2 opacity-20" />
-              <p className="text-[10px]">Chưa có danh sách theo dõi</p>
+              <p className="text-[10px]">Chưa có mã theo dõi</p>
               <p className="text-[9px] mt-1 text-center px-4 opacity-50">
-                Tạo danh sách để theo dõi mã yêu thích
+                Thêm mã cổ phiếu để bắt đầu theo dõi
               </p>
             </div>
           ) : (
-            lists.map((list) => {
-              const isExpanded = expandedLists.has(list.id)
-              return (
-                <div key={list.id} className="border-b border-border/20 last:border-0">
-                  {/* List header */}
+            <div className="divide-y divide-border/10">
+              {allSymbols.map((sym) => (
+                <div key={sym} className="relative group">
+                  <StockRow
+                    symbol={sym}
+                    d={priceMap[sym.toUpperCase()]}
+                    onClick={() => navigate(`/co-phieu/${sym}`)}
+                  />
                   <button
-                    onClick={() => toggleExpand(list.id)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-muted/15 transition-colors"
+                    onClick={() => handleRemoveSymbol(sym)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 size-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/10 hover:bg-destructive/20 text-destructive"
                   >
-                    <div className="flex items-center gap-1">
-                      <ChevronDown
-                        className={`size-2.5 text-muted-foreground transition-transform duration-150 ${!isExpanded ? "-rotate-90" : ""}`}
-                      />
-                      <Star className="size-2.5 text-amber-500/70" />
-                      <span className="text-[10px] font-semibold text-foreground">
-                        {list.name}
-                      </span>
-                      <span className="text-[8px] text-muted-foreground/60">
-                        ({list.symbols.length})
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-4 text-muted-foreground/40 hover:text-destructive"
-                      onClick={(e) => handleDelete(e, list.id)}
-                    >
-                      <Trash2 className="size-2.5" />
-                    </Button>
+                    <X className="size-2.5" />
                   </button>
-
-                  {isExpanded && (
-                    <div>
-                      {list.symbols.length > 0 ? (
-                        <div className="divide-y divide-border/10">
-                          {list.symbols.map((sym) => (
-                            <StockRow
-                              key={sym}
-                              symbol={sym}
-                              d={priceMap[sym.toUpperCase()]}
-                              onClick={() => navigate(`/co-phieu/${sym}`)}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-[9px] text-muted-foreground/50 italic px-2 py-2 text-center">
-                          Chưa có mã — thêm từ trang cổ phiếu
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
-              )
-            })
+              ))}
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -441,28 +377,58 @@ function HoldingsTabContent() {
             <div className="divide-y divide-border/10">
               {items.map((item) => {
                 const live = priceMap[item.symbol.toUpperCase()]
-                const pnl = item.pnl ?? 0
+                const currentPrice = live?.closePrice || item.currentPrice || 0
+                const ref = live?.referencePrice || 0
+                const ceil = live?.ceilingPrice || 0
+                const floor = live?.floorPrice || 0
                 const pnlPct = item.pnlPercent ?? 0
-                const isP = pnl >= 0
+                const isP = pnlPct >= 0
+                const priceColor = pc(currentPrice, ref, ceil, floor)
 
                 return (
-                  <StockRow
+                  <button
                     key={item.symbol}
-                    symbol={item.symbol}
-                    d={live}
                     onClick={() => navigate(`/co-phieu/${item.symbol}`)}
-                    extra={
-                      <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/80 font-medium leading-none">
-                        <span>SL: {(item.quantity ?? 0).toLocaleString("vi-VN")}</span>
-                        <span className="opacity-40">·</span>
-                        <span>Giá: {fv(item.avgPrice)}</span>
-                        <span className="opacity-40">·</span>
-                        <span className={`font-bold ${isP ? "text-emerald-500/90" : "text-red-500/90"}`}>
-                          {isP ? "+" : ""}{pnlPct.toFixed(2)}%
-                        </span>
+                    className="w-full text-left px-2 py-1.5 hover:bg-muted/40 transition-colors group active:scale-[0.995]"
+                  >
+                    <div className="flex items-center gap-2">
+                      <StockLogo symbol={item.symbol} size={28} />
+                      <div className="flex-1 min-w-0">
+                        {/* Row 1: Mã | Số lượng | Giá hiện tại */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                            {item.symbol}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-muted-foreground tabular-nums">
+                              {(item.quantity ?? 0).toLocaleString("vi-VN")}
+                            </span>
+                            <span className={`text-xs font-black tabular-nums tracking-tight min-w-[52px] text-right ${priceColor}`}>
+                              {fp(currentPrice)}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Row 2: (gap) | Giá vốn | % lãi/lỗ */}
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-[9px] text-muted-foreground/60"></span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[9px] text-muted-foreground/70 tabular-nums">
+                              {fv(item.avgPrice)}
+                            </span>
+                            <span
+                              className={`text-[9px] font-bold tabular-nums px-1 py-[1px] rounded leading-none min-w-[52px] text-right ${
+                                isP
+                                  ? "bg-emerald-500/15 text-emerald-500"
+                                  : "bg-red-500/15 text-red-500"
+                              }`}
+                            >
+                              {isP ? "+" : ""}{pnlPct.toFixed(2)}%
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    }
-                  />
+                    </div>
+                  </button>
                 )
               })}
             </div>

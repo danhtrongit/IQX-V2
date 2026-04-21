@@ -8,7 +8,6 @@ import {
 } from "@/components/layout"
 import { NewsMarkPopover } from "@/components/chart/news-mark-popover"
 import { SymbolProvider } from "@/contexts/symbol-context"
-import { SidebarProvider } from "@/contexts/sidebar-context"
 import { MarketDataProvider } from "@/contexts/market-data-context"
 import { toast } from "sonner"
 import { Lightbulb } from "lucide-react"
@@ -37,27 +36,25 @@ export default function DashboardPage() {
   return (
     <MarketDataProvider>
       <SymbolProvider symbol="VNINDEX">
-        <SidebarProvider defaultPanel="news">
-          <div id="dashboard-root" className="flex h-svh flex-col overflow-hidden bg-background">
-            <Header />
-            <MarketBar />
+        <div id="dashboard-root" className="flex h-svh flex-col overflow-hidden bg-background">
+          <Header />
+          <MarketBar />
 
-            <div className="flex flex-1 min-h-0 pb-[52px] md:pb-0">
-              <CenterPanel onMarkClick={setActiveMarkId} />
-              <RightSidebar />
-              <RightToolbar onActionClick={handleActionClick} />
-            </div>
-
-            <Footer />
-
-            {/* News Mark Popover */}
-            <NewsMarkPopover
-              symbol="VNINDEX"
-              markId={activeMarkId}
-              onClose={() => setActiveMarkId(null)}
-            />
+          <div className="flex flex-1 min-h-0 pb-[52px] md:pb-0">
+            <CenterPanel onMarkClick={setActiveMarkId} />
+            <RightSidebar />
+            <RightToolbar onActionClick={handleActionClick} />
           </div>
-        </SidebarProvider>
+
+          <Footer />
+
+          {/* News Mark Popover */}
+          <NewsMarkPopover
+            symbol="VNINDEX"
+            markId={activeMarkId}
+            onClose={() => setActiveMarkId(null)}
+          />
+        </div>
       </SymbolProvider>
     </MarketDataProvider>
   )

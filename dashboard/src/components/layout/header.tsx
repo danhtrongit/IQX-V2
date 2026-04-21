@@ -50,7 +50,7 @@ interface StockResult {
 
 const NAV_ITEMS = [
   { label: "Tổng quan", href: "/" },
-  { label: "Thị trường", href: "/market" },
+  { label: "Thị trường", href: "/thi-truong" },
   { label: "Cổ phiếu", href: "/stocks" },
   { label: "Phái sinh", href: "/derivatives" },
   { label: "Phân tích AI", href: "/ai-analysis" },

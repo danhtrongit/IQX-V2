@@ -36,9 +36,10 @@ export class QuoteService {
     to?: string,
   ) {
     const data = await this.http.withFallback(
-      () => this.isIndexSymbol(symbol)
-        ? this.getIndexHistoryFromKbs(symbol, interval, from, to)
-        : this.getHistoryFromKbs(symbol, interval, from, to),
+      () =>
+        this.isIndexSymbol(symbol)
+          ? this.getIndexHistoryFromKbs(symbol, interval, from, to)
+          : this.getHistoryFromKbs(symbol, interval, from, to),
       () => this.getHistoryFromVci(symbol, interval),
       'quote.getHistory',
     );
@@ -195,7 +196,9 @@ export class QuoteService {
     }
 
     // VCI returns newest-first → sort ascending (oldest-first) to match KBS format
-    result.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+    result.sort(
+      (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
+    );
 
     return result;
   }
@@ -208,12 +211,12 @@ export class QuoteService {
     });
 
     return (raw || []).map((item) => ({
-      time: new Date(item.truncTime).toISOString(),
+      time: new Date(Number(item.truncTime) * 1000).toISOString(),
       date: null,
       symbol: symbol.toUpperCase(),
-      price: item.matchPrice,
-      volume: item.matchVol,
-      side: item.matchType === 'B' ? 'BUY' : 'SELL',
+      price: Number(item.matchPrice) || null,
+      volume: Number(item.matchVol) || 0,
+      side: item.matchType?.toUpperCase() === 'B' ? 'BUY' : 'SELL',
       accumulatedVolume: null,
       accumulatedValue: null,
     }));
