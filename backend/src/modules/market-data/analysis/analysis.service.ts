@@ -1,9 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { MESSAGES } from '../../../common/constants/messages.constant';
 import { ProxyHttpService } from '../../../common/services/proxy-http.service';
 import {
   RedisCacheService,
   CacheType,
 } from '../../../common/modules/redis-cache/redis-cache.service';
+
+const FEATURED_NEWS_SOURCE_NAME = 'Tin cơ sở';
+const FEATURED_NEWS_SOURCE_VALUE = 'tin-co-so';
 
 @Injectable()
 export class AnalysisService {
@@ -85,5 +89,59 @@ export class AnalysisService {
       filter: body.filter ?? [],
     });
     return data;
+  }
+
+  async getFeaturedNews(params: { pageSize?: number; language?: string }) {
+    const normalized = {
+      pageSize: params.pageSize ?? 10,
+      language: params.language ?? 'vi',
+    };
+    const cacheKey = `analysis:featured-news:${normalized.language}:${normalized.pageSize}`;
+    const cached = await this.cacheService.get<any>(cacheKey, CacheType.AI_NEWS);
+    if (cached) return cached;
+
+    const raw = await this.http.vciAiNewsGet<any>('/v3/news_info', {
+      newsfrom: FEATURED_NEWS_SOURCE_VALUE,
+      page: 1,
+      page_size: normalized.pageSize,
+      language: normalized.language,
+    });
+
+    const items: any[] = raw?.news_info || [];
+    const filteredItems = items.filter((item) => {
+      const sourceName = String(item?.news_from_name || '').toLowerCase();
+      const source = String(item?.news_from || '').toLowerCase();
+      return (
+        sourceName === FEATURED_NEWS_SOURCE_NAME.toLowerCase() ||
+        source === FEATURED_NEWS_SOURCE_VALUE
+      );
+    });
+
+    const response = {
+      message: MESSAGES.COMMON.SUCCESS,
+      data: filteredItems.map((item: any) => ({
+        id: item.id,
+        ticker: item.ticker,
+        title: item.news_title,
+        shortContent: item.news_short_content,
+        source: item.news_from,
+        sourceName: item.news_from_name,
+        sourceLink: item.news_source_link,
+        imageUrl: item.news_image_url,
+        sentiment: item.sentiment,
+        score: item.score,
+        slug: item.slug,
+        updatedAt: item.update_date,
+      })),
+      meta: {
+        source: FEATURED_NEWS_SOURCE_VALUE,
+        sourceName: FEATURED_NEWS_SOURCE_NAME,
+        total: filteredItems.length,
+        requestedPageSize: normalized.pageSize,
+      },
+    };
+
+    await this.cacheService.set(cacheKey, response, CacheType.AI_NEWS);
+    return response;
   }
 }

@@ -10,7 +10,6 @@ import { MacroIndicators } from "./macro-indicators"
 import { CommodityPrices } from "./commodity-prices"
 import { SectorData } from "./sector-data"
 import { SectorPerformanceChart } from "./sector-performance-chart"
-import { AiSectorAnalysis } from "./ai-sector-analysis"
 import { MarketLeaders } from "./market-leaders"
 import { ProprietaryTrading } from "./proprietary-trading"
 import { ForeignFlow } from "./foreign-flow"
@@ -49,7 +48,6 @@ export default function ThiTruongPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <SectorData />
                 <SectorPerformanceChart />
-                <AiSectorAnalysis />
               </div>
               {/* Line 4 */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">

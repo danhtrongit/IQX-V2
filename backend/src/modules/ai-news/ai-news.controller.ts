@@ -142,4 +142,21 @@ export class AiNewsController {
   getSources(@Query('language') language?: string) {
     return this.aiNewsService.getSources(language || 'vi');
   }
+
+  @Get('top-tickers')
+  @ApiOperation({ summary: 'Top ma co phieu tich cuc/tieu cuc theo nhom' })
+  @ApiQuery({ name: 'group', required: false, description: 'hose | hnx | upcom' })
+  @ApiQuery({ name: 'topPos', required: false, description: 'So luong ma tich cuc' })
+  @ApiQuery({ name: 'topNeg', required: false, description: 'So luong ma tieu cuc' })
+  getTopTickers(
+    @Query('group') group?: string,
+    @Query('topPos') topPos?: string,
+    @Query('topNeg') topNeg?: string,
+  ) {
+    return this.aiNewsService.getTopTickers({
+      group: group || 'hose',
+      topPos: Number(topPos) || 5,
+      topNeg: Number(topNeg) || 5,
+    });
+  }
 }

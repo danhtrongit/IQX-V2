@@ -355,6 +355,69 @@ export class AiNewsService {
     return response;
   }
 
+  async getTopTickers(params: {
+    group?: string;
+    topPos?: number;
+    topNeg?: number;
+  }) {
+    const normalized = {
+      group: params.group ?? 'hose',
+      topPos: params.topPos ?? 5,
+      topNeg: params.topNeg ?? 5,
+    };
+    const cacheKey = this.generateCacheKey('top-tickers', normalized);
+
+    try {
+      const cached = await this.cacheService.get<any>(
+        cacheKey,
+        CacheType.AI_NEWS,
+      );
+      if (cached) {
+        this.logger.debug(`Cache HIT for top tickers: ${cacheKey}`);
+        return cached;
+      }
+    } catch (error) {
+      this.logger.warn(`Cache get failed for top tickers: ${error.message}`);
+    }
+
+    const raw = await this.http.vciAiNewsGet<any>('/get_top_tickers', {
+      group: normalized.group,
+      top_pos: normalized.topPos,
+      top_neg: normalized.topNeg,
+    });
+
+    const items: any[] = raw?.ticker_info || [];
+    const response = {
+      message: MESSAGES.COMMON.SUCCESS,
+      data: items.map((r: any) => ({
+        ticker: r.ticker,
+        companyName: r.organ_name,
+        industry: r.industry,
+        logo: r.logo,
+        score: r.score,
+        sentiment: r.sentiment,
+        newsCount: r.cnt_news,
+        countPositive: r.count_pos,
+        countNeutral: r.count_neu,
+        countNegative: r.count_neg,
+      })),
+      meta: {
+        group: normalized.group,
+        topPos: normalized.topPos,
+        topNeg: normalized.topNeg,
+        total: raw?.record_count ?? items.length,
+      },
+    };
+
+    try {
+      await this.cacheService.set(cacheKey, response, CacheType.AI_NEWS);
+    } catch (error) {
+      this.logger.warn(`Cache set failed for top tickers: ${error.message}`);
+    }
+
+    return response;
+  }
+
   private generateCacheKey(
     prefix: string,
     params: Record<string, any>,

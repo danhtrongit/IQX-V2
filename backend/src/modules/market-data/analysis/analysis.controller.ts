@@ -39,6 +39,21 @@ export class AnalysisController {
   }
 
   @Public()
+  @Get('featured-news')
+  @ApiOperation({ summary: 'Tin tuc noi bat tu nguon Tin co so' })
+  @ApiQuery({ name: 'pageSize', required: false, description: 'So luong tin toi da' })
+  @ApiQuery({ name: 'language', required: false, description: 'vi | en' })
+  getFeaturedNews(
+    @Query('pageSize') pageSize?: string,
+    @Query('language') language?: string,
+  ) {
+    return this.service.getFeaturedNews({
+      pageSize: Number(pageSize) || 10,
+      language: language || 'vi',
+    });
+  }
+
+  @Public()
   @Get('screener/criteria')
   @ApiOperation({ summary: 'Tiêu chí lọc cổ phiếu (VCI Screener)' })
   getScreenerCriteria() {

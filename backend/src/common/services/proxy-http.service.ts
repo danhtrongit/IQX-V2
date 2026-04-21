@@ -142,7 +142,7 @@ export class ProxyHttpService {
           url.searchParams.set(k, String(v));
       });
     }
-    return this.get<T>(url.toString(), DATA_SOURCES.VCI.HEADERS);
+    return this.get<T>(url.toString(), DATA_SOURCES.VCI.AI_NEWS_HEADERS);
   }
 
   /** MSN GET shorthand */
